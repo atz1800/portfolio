@@ -5,6 +5,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -83,16 +85,34 @@ const fieldOrder   = document.getElementById('fieldOrder');
 const fieldTags    = document.getElementById('fieldTags');
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
+
+// Handle redirect result on page load (mobile flow)
+getRedirectResult(auth).then(result => {
+  if (result && result.user && result.user.email !== ADMIN_EMAIL) {
+    signOut(auth);
+    loginError.textContent = 'גישה מורשית לבעל האתר בלבד.';
+  }
+}).catch(() => {
+  loginError.textContent = 'שגיאה בכניסה. נסה שוב.';
+});
+
 loginBtn.addEventListener('click', async () => {
   loginError.textContent = '';
   try {
-    const result = await signInWithPopup(auth, new GoogleAuthProvider());
-    if (result.user.email !== ADMIN_EMAIL) {
-      await signOut(auth);
-      loginError.textContent = 'גישה מורשית לבעל האתר בלבד.';
+    if (isMobile) {
+      await signInWithRedirect(auth, new GoogleAuthProvider());
+    } else {
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      if (result.user.email !== ADMIN_EMAIL) {
+        await signOut(auth);
+        loginError.textContent = 'גישה מורשית לבעל האתר בלבד.';
+      }
     }
   } catch (e) {
-    loginError.textContent = 'שגיאה בכניסה. נסה שוב.';
+    if (e.code !== 'auth/popup-closed-by-user') {
+      loginError.textContent = 'שגיאה בכניסה. נסה שוב.';
+    }
   }
 });
 
