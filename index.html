@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>תיק עבודות</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="logo">
+        <span class="logo-bracket">{</span>
+        <span class="logo-name">עמיחי</span>
+        <span class="logo-bracket">}</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#projects">פרויקטים</a>
+        <a href="#about">אודות</a>
+        <a href="#contact">צור קשר</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-badge">מפתח אפליקציות ואתרים</div>
+      <h1 class="hero-title">
+        בונה דברים<br />
+        <span class="accent">שעובדים.</span>
+      </h1>
+      <p class="hero-subtitle">
+        אפליקציות ואתרים שפותחו עם תשומת לב לפרטים — מהרעיון ועד המוצר המוגמר.
+      </p>
+      <div class="hero-cta">
+        <a href="#projects" class="btn btn-primary">ראה עבודות</a>
+        <a href="#contact" class="btn btn-ghost">צור קשר</a>
+      </div>
+    </div>
+    <div class="hero-bg-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section class="projects-section" id="projects">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">פרויקטים</h2>
+        <p class="section-sub">אפליקציות ואתרים שבניתי</p>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">הכל</button>
+        <button class="filter-btn" data-filter="app">אפליקציות</button>
+        <button class="filter-btn" data-filter="web">אתרים</button>
+        <button class="filter-btn" data-filter="tool">כלים</button>
+      </div>
+
+      <div id="projectsLoading" class="projects-loading">
+        <div class="loading-spinner"></div>
+      </div>
+      <div class="projects-grid" id="projectsGrid">
+        <!-- Cards injected by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="about-section" id="about">
+    <div class="container about-inner">
+      <div class="about-text">
+        <h2 class="section-title">אודות</h2>
+        <p>
+          אני מפתח שאוהב לבנות דברים שפותרים בעיות אמיתיות.
+          מהרעיון ועד המוצר — דואג שכל פרט יעבוד כמו שצריך.
+        </p>
+        <p>
+          מתמחה בפיתוח אפליקציות ואתרים לקהל הישראלי, עם דגש על חוויית משתמש טובה וביצועים גבוהים.
+        </p>
+        <div class="tech-tags">
+          <span class="tech-tag">React</span>
+          <span class="tech-tag">JavaScript</span>
+          <span class="tech-tag">Firebase</span>
+          <span class="tech-tag">HTML/CSS</span>
+          <span class="tech-tag">PWA</span>
+          <span class="tech-tag">Node.js</span>
+        </div>
+      </div>
+      <div class="about-stats">
+        <div class="stat-card">
+          <span class="stat-number" id="projectCount">10+</span>
+          <span class="stat-label">פרויקטים</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">100%</span>
+          <span class="stat-label">מחויבות</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">∞</span>
+          <span class="stat-label">קפה</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact-section" id="contact">
+    <div class="container contact-inner">
+      <h2 class="section-title">צור קשר</h2>
+      <p class="contact-sub">מעוניין בפרויקט? דברו איתי.</p>
+      <div class="contact-links">
+        <a href="mailto:amichai85@gmail.com" class="contact-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+          amichai85@gmail.com
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>© 2025 עמיחי</span>
+      <a href="admin.html" class="admin-footer-link">⚙</a>
+    </div>
+  </footer>
+
+  <!-- PROJECT CARD TEMPLATE -->
+  <template id="cardTemplate">
+    <article class="project-card" data-category="">
+      <div class="card-image">
+        <div class="card-image-placeholder">
+          <span class="card-emoji"></span>
+        </div>
+        <img class="card-img" src="" alt="" loading="lazy" />
+        <div class="card-overlay">
+          <a class="card-link-btn" href="#" target="_blank" rel="noopener">פתח פרויקט ↗</a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-category-badge"></span>
+          <span class="card-year"></span>
+        </div>
+        <h3 class="card-title"></h3>
+        <p class="card-desc"></p>
+        <div class="card-tags"></div>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
