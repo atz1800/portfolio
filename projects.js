@@ -92,7 +92,7 @@ export const PROJECTS = [
     tags: ["React", "Firebase", "PWA"],
     category: "app",
     year: "2025"
-  }
+  },
   {
     id: "piaseczner",
     title: "אתר הפיאסצ'נה",

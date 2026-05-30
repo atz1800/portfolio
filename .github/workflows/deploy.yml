@@ -3,7 +3,7 @@ name: Deploy Portfolio to GitHub Pages
 on:
   push:
     branches:
-      - claude/portfolio-website-0LQga
+      - main
 
 permissions:
   contents: write
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout portfolio branch
         uses: actions/checkout@v4
         with:
-          ref: claude/portfolio-website-0LQga
+          ref: main
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
