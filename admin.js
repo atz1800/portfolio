@@ -1,6 +1,6 @@
 import { PROJECTS as STATIC_PROJECTS } from './projects.js';
 import { SUPABASE_URL, SUPABASE_KEY, ADMIN_EMAIL, TABLE, BUCKET } from './supabase-config.js';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/esm/index.js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ── Supabase init ─────────────────────────────────────────────────────────────
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
