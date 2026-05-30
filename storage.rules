@@ -1,10 +1,11 @@
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /portfolio-images/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null
-                   && request.auth.token.email == 'amichai85@gmail.com';
-    }
-  }
-}
+// These Firebase Storage rules are no longer used.
+// The portfolio has been migrated from Firebase to Supabase.
+// Storage policies are now managed in the Supabase dashboard (SQL editor).
+//
+// To configure Supabase Storage policies, run this SQL in the Supabase SQL editor:
+//
+//   create policy "Admin upload" on storage.objects for insert
+//     with check (bucket_id = 'portfolio-images' and auth.email() = 'amichai85@gmail.com');
+//
+//   create policy "Public read" on storage.objects for select
+//     using (bucket_id = 'portfolio-images');

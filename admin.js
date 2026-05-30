@@ -1,50 +1,22 @@
 import { PROJECTS as STATIC_PROJECTS } from './projects.js';
-import { FIREBASE_CONFIG, ADMIN_EMAIL, COLLECTION } from './firebase-config.js';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signOut,
-  onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  onSnapshot
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import {
-  getStorage,
-  ref,
-  uploadBytesResumable,
-  getDownloadURL
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { SUPABASE_URL, SUPABASE_KEY, ADMIN_EMAIL, TABLE, BUCKET } from './supabase-config.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/esm/index.js';
 
-// ── Firebase init ─────────────────────────────────────────────────────────────
-const app = initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// ── Supabase init ─────────────────────────────────────────────────────────────
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let projects = [];
 let selectedDocId = null;
 let pendingImageFile = null;
-let unsubscribe = null;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const loginScreen  = document.getElementById('loginScreen');
 const dashboard    = document.getElementById('dashboard');
-const loginBtn     = document.getElementById('loginBtn');
 const loginError   = document.getElementById('loginError');
+const loginEmailInput = document.getElementById('loginEmail');
+const loginBtn     = document.getElementById('loginBtn');
+const loginSentMsg = document.getElementById('loginSentMsg');
 const logoutBtn    = document.getElementById('logoutBtn');
 const addBtn       = document.getElementById('addBtn');
 const seedBtn      = document.getElementById('seedBtn');
@@ -84,73 +56,65 @@ const fieldCategory= document.getElementById('fieldCategory');
 const fieldOrder   = document.getElementById('fieldOrder');
 const fieldTags    = document.getElementById('fieldTags');
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
-
-// Handle redirect result on page load (mobile flow)
-getRedirectResult(auth).then(result => {
-  if (result && result.user && result.user.email !== ADMIN_EMAIL) {
-    signOut(auth);
-    loginError.textContent = 'גישה מורשית לבעל האתר בלבד.';
-  }
-}).catch(() => {
-  loginError.textContent = 'שגיאה בכניסה. נסה שוב.';
-});
-
+// ── Auth — Magic Link (OTP) ───────────────────────────────────────────────────
 loginBtn.addEventListener('click', async () => {
   loginError.textContent = '';
+  const email = loginEmailInput.value.trim();
+  if (!email) {
+    loginError.textContent = 'יש להזין כתובת מייל.';
+    loginEmailInput.focus();
+    return;
+  }
+  if (email !== ADMIN_EMAIL) {
+    loginError.textContent = 'גישה מורשית לבעל האתר בלבד.';
+    return;
+  }
   try {
-    if (isMobile) {
-      await signInWithRedirect(auth, new GoogleAuthProvider());
-    } else {
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
-      if (result.user.email !== ADMIN_EMAIL) {
-        await signOut(auth);
-        loginError.textContent = 'גישה מורשית לבעל האתר בלבד.';
-      }
-    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    if (error) throw error;
+    if (loginSentMsg) loginSentMsg.classList.remove('hidden');
+    loginBtn.disabled = true;
   } catch (e) {
-    if (e.code !== 'auth/popup-closed-by-user') {
-      loginError.textContent = 'שגיאה בכניסה. נסה שוב.';
-    }
+    loginError.textContent = 'שגיאה בשליחה. נסה שוב.';
   }
 });
 
-logoutBtn.addEventListener('click', () => signOut(auth));
+logoutBtn.addEventListener('click', () => supabase.auth.signOut());
 
-onAuthStateChanged(auth, user => {
-  if (user && user.email === ADMIN_EMAIL) {
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session && session.user && session.user.email === ADMIN_EMAIL) {
     loginScreen.classList.add('hidden');
     dashboard.classList.remove('hidden');
-    startListening();
+    loadProjects();
   } else {
     loginScreen.classList.remove('hidden');
     dashboard.classList.add('hidden');
-    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    if (loginBtn) loginBtn.disabled = false;
+    if (loginSentMsg) loginSentMsg.classList.add('hidden');
   }
 });
 
-// ── Firestore real-time listener ──────────────────────────────────────────────
-function startListening() {
-  const q = query(collection(db, COLLECTION), orderBy('order', 'asc'));
-  unsubscribe = onSnapshot(q,
-    snap => {
-      projects = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
-      renderSidebar();
-      seedBtn.classList.toggle('hidden', projects.length > 0);
-    },
-    err => {
-      // orderBy requires an index — fall back to unordered and sort client-side
-      if (unsubscribe) unsubscribe();
-      const q2 = collection(db, COLLECTION);
-      unsubscribe = onSnapshot(q2, snap => {
-        projects = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
-        projects.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-        renderSidebar();
-        seedBtn.classList.toggle('hidden', projects.length > 0);
-      });
-    }
-  );
+// ── Load projects from Supabase ───────────────────────────────────────────────
+async function loadProjects() {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .order('order', { ascending: true });
+
+  if (!error && data) {
+    projects = data.map(row => ({
+      docId: row.id,
+      ...row,
+      desc: row.description || row.desc || ''
+    }));
+  } else {
+    projects = [];
+  }
+  renderSidebar();
+  if (seedBtn) seedBtn.classList.toggle('hidden', projects.length > 0);
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -208,7 +172,7 @@ function openEditPanel(docId) {
   fieldDocId.value = docId;
   fieldTitle.value = p.title || '';
   fieldEmoji.value = p.emoji || '';
-  fieldDesc.value = p.desc || '';
+  fieldDesc.value = p.desc || p.description || '';
   fieldLink.value = p.link || '';
   fieldYear.value = p.year || '';
   fieldCategory.value = p.category || 'app';
@@ -272,29 +236,32 @@ function clearImagePreview() {
   previewPlaceholder.classList.remove('hidden');
 }
 
-// ── Upload image to Storage ───────────────────────────────────────────────────
+// ── Upload image to Supabase Storage ─────────────────────────────────────────
+// NOTE: Run this SQL in the Supabase SQL editor to set up storage policies:
+//
+//   create policy "Admin upload" on storage.objects for insert
+//     with check (bucket_id = 'portfolio-images' and auth.email() = 'amichai85@gmail.com');
+//
+//   create policy "Public read" on storage.objects for select
+//     using (bucket_id = 'portfolio-images');
+//
 async function uploadImage(file, docId) {
-  return new Promise((resolve, reject) => {
-    const storageRef = ref(storage, `portfolio-images/${docId}/${Date.now()}_${file.name}`);
-    const task = uploadBytesResumable(storageRef, file);
-    uploadProgress.classList.remove('hidden');
-    task.on('state_changed',
-      snap => {
-        const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-        progressFill.style.width = pct + '%';
-        progressText.textContent = `מעלה... ${pct}%`;
-      },
-      err => {
-        uploadProgress.classList.add('hidden');
-        reject(err);
-      },
-      async () => {
-        uploadProgress.classList.add('hidden');
-        const url = await getDownloadURL(task.snapshot.ref);
-        resolve(url);
-      }
-    );
-  });
+  uploadProgress.classList.remove('hidden');
+  progressFill.style.width = '0%';
+  progressText.textContent = 'מעלה...';
+
+  const ext = file.name.split('.').pop();
+  const path = `${docId}/${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: true });
+
+  uploadProgress.classList.add('hidden');
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // ── Save project ──────────────────────────────────────────────────────────────
@@ -315,31 +282,37 @@ projectForm.addEventListener('submit', async e => {
       try {
         finalImageUrl = await uploadImage(pendingImageFile, docId);
       } catch (uploadErr) {
-        showToast('שגיאה בהעלאת תמונה — ודא שהפעלת Firebase Storage', 'error');
+        showToast('שגיאה בהעלאת תמונה — ודא שהגדרת את מדיניות האחסון ב-Supabase', 'error');
         setSaving(false);
         return;
       }
     }
 
-    const data = {
-      title:    fieldTitle.value.trim(),
-      emoji:    fieldEmoji.value.trim() || '📱',
-      desc:     fieldDesc.value.trim(),
-      link:     fieldLink.value.trim() || null,
-      year:     fieldYear.value.trim() || new Date().getFullYear().toString(),
-      category: fieldCategory.value,
-      order:    parseInt(fieldOrder.value) || 0,
-      tags:     fieldTags.value.split(',').map(t => t.trim()).filter(Boolean),
-      imageUrl: finalImageUrl
+    const record = {
+      id:          docId,
+      title:       fieldTitle.value.trim(),
+      emoji:       fieldEmoji.value.trim() || '📱',
+      description: fieldDesc.value.trim(),
+      link:        fieldLink.value.trim() || null,
+      year:        fieldYear.value.trim() || new Date().getFullYear().toString(),
+      category:    fieldCategory.value,
+      order:       parseInt(fieldOrder.value) || 0,
+      tags:        fieldTags.value.split(',').map(t => t.trim()).filter(Boolean),
+      imageUrl:    finalImageUrl
     };
 
-    await setDoc(doc(db, COLLECTION, docId), data);
+    const { error } = await supabase.from(TABLE).upsert(record);
+    if (error) throw error;
+
     pendingImageFile = null;
     showToast('נשמר בהצלחה ✓', 'success');
     selectedDocId = docId;
     fieldDocId.value = docId;
     deleteBtn.classList.remove('hidden');
     panelTitle.textContent = 'עריכת פרויקט';
+
+    // Reload project list to reflect changes
+    await loadProjects();
     updateSidebarActive();
   } catch (err) {
     showToast('שגיאה בשמירה: ' + err.message, 'error');
@@ -368,35 +341,43 @@ confirmDeleteBtn.addEventListener('click', async () => {
   deleteModal.classList.add('hidden');
   if (!selectedDocId) return;
   try {
-    await deleteDoc(doc(db, COLLECTION, selectedDocId));
+    const { error } = await supabase.from(TABLE).delete().eq('id', selectedDocId);
+    if (error) throw error;
     closePanel();
     showToast('הפרויקט נמחק', 'success');
+    await loadProjects();
   } catch (err) {
     showToast('שגיאה במחיקה: ' + err.message, 'error');
   }
 });
 
 // ── Seed from static data ─────────────────────────────────────────────────────
-seedBtn.addEventListener('click', async () => {
-  if (!confirm(`לייבא ${STATIC_PROJECTS.length} פרויקטים ל-Firestore?`)) return;
-  seedBtn.disabled = true;
-  try {
-    for (let i = 0; i < STATIC_PROJECTS.length; i++) {
-      const p = STATIC_PROJECTS[i];
-      const { image, ...rest } = p;
-      await setDoc(doc(db, COLLECTION, p.id), {
-        ...rest,
-        imageUrl: image || null,
-        order: i
-      });
+if (seedBtn) {
+  seedBtn.addEventListener('click', async () => {
+    if (!confirm(`לייבא ${STATIC_PROJECTS.length} פרויקטים ל-Supabase?`)) return;
+    seedBtn.disabled = true;
+    try {
+      for (let i = 0; i < STATIC_PROJECTS.length; i++) {
+        const p = STATIC_PROJECTS[i];
+        const { image, ...rest } = p;
+        const { error } = await supabase.from(TABLE).upsert({
+          id:          p.id,
+          ...rest,
+          description: rest.desc || '',
+          imageUrl:    image || null,
+          order:       i
+        });
+        if (error) throw error;
+      }
+      showToast(`יובאו ${STATIC_PROJECTS.length} פרויקטים ✓`, 'success');
+      await loadProjects();
+    } catch (err) {
+      showToast('שגיאה בייבוא: ' + err.message, 'error');
+    } finally {
+      seedBtn.disabled = false;
     }
-    showToast(`יובאו ${STATIC_PROJECTS.length} פרויקטים ✓`, 'success');
-  } catch (err) {
-    showToast('שגיאה בייבוא: ' + err.message, 'error');
-  } finally {
-    seedBtn.disabled = false;
-  }
-});
+  });
+}
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 let toastTimer;
