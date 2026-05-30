@@ -87,6 +87,35 @@ html, body {
 }
 .btn-google:hover { background: #f0f0f0; }
 
+.login-email-input {
+  margin-bottom: 12px;
+  text-align: right;
+}
+
+.btn-magic-link {
+  display: block;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 24px;
+  font-family: 'Heebo', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.btn-magic-link:hover { background: var(--accent-hover); }
+.btn-magic-link:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.login-sent {
+  margin-top: 14px;
+  color: var(--success);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .login-error {
   margin-top: 16px;
   color: var(--danger);
