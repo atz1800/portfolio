@@ -5,6 +5,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -85,18 +87,31 @@ const confirmDeleteNoBtn    = document.getElementById('confirmDeleteNoBtn');
 const adminToast     = document.getElementById('adminToast');
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
+
+// Handle redirect result on page load (mobile flow)
+getRedirectResult(auth).then(result => {
+  if (result && result.user && result.user.email !== ADMIN_EMAIL) {
+    signOut(auth);
+    showToast('גישה מורשית לבעל האתר בלבד.', 'error');
+  }
+}).catch(() => {});
+
 adminGearBtn.addEventListener('click', async (e) => {
   e.preventDefault();
   if (isAdmin) {
-    // Already logged in — toggle admin bar visibility (scroll to top)
     adminBar.scrollIntoView({ behavior: 'smooth' });
     return;
   }
   try {
-    const result = await signInWithPopup(auth, new GoogleAuthProvider());
-    if (result.user.email !== ADMIN_EMAIL) {
-      await signOut(auth);
-      showToast('גישה מורשית לבעל האתר בלבד.', 'error');
+    if (isMobile) {
+      await signInWithRedirect(auth, new GoogleAuthProvider());
+    } else {
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      if (result.user.email !== ADMIN_EMAIL) {
+        await signOut(auth);
+        showToast('גישה מורשית לבעל האתר בלבד.', 'error');
+      }
     }
   } catch (e) {
     if (e.code !== 'auth/popup-closed-by-user') {
