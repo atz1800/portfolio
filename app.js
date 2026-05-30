@@ -1,45 +1,15 @@
 import { PROJECTS as STATIC_PROJECTS } from './projects.js';
-import { FIREBASE_CONFIG, ADMIN_EMAIL, COLLECTION } from './firebase-config.js';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signOut,
-  onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  onSnapshot
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import {
-  getStorage,
-  ref,
-  uploadBytesResumable,
-  getDownloadURL
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { SUPABASE_URL, SUPABASE_KEY, ADMIN_EMAIL, TABLE, BUCKET } from './supabase-config.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/esm/index.js';
 
-// ── Firebase init ─────────────────────────────────────────────────────────────
-const app = initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// ── Supabase init ─────────────────────────────────────────────────────────────
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let isAdmin = false;
 let allProjects = [];
 let editingDocId = null;
 let pendingImageFile = null;
-let firestoreUnsubscribe = null;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const grid           = document.getElementById('projectsGrid');
@@ -87,76 +57,30 @@ const confirmDeleteNoBtn    = document.getElementById('confirmDeleteNoBtn');
 const adminToast     = document.getElementById('adminToast');
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 800;
-
-// Handle redirect result on page load (mobile flow)
-getRedirectResult(auth).then(result => {
-  if (result && result.user && result.user.email !== ADMIN_EMAIL) {
-    signOut(auth);
-    showToast('גישה מורשית לבעל האתר בלבד.', 'error');
-  }
-}).catch(() => {});
-
 adminGearBtn.addEventListener('click', async (e) => {
   e.preventDefault();
   if (isAdmin) {
     adminBar.scrollIntoView({ behavior: 'smooth' });
     return;
   }
-  try {
-    if (isMobile) {
-      await signInWithRedirect(auth, new GoogleAuthProvider());
-    } else {
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
-      if (result.user.email !== ADMIN_EMAIL) {
-        await signOut(auth);
-        showToast('גישה מורשית לבעל האתר בלבד.', 'error');
-      }
-    }
-  } catch (e) {
-    if (e.code !== 'auth/popup-closed-by-user') {
-      showToast('שגיאה בכניסה. נסה שוב.', 'error');
-    }
-  }
+  // Navigate to admin page for magic link login
+  window.location.href = 'admin.html';
 });
 
-adminLogoutBtn.addEventListener('click', () => signOut(auth));
+adminLogoutBtn.addEventListener('click', () => supabase.auth.signOut());
 
-onAuthStateChanged(auth, user => {
-  if (user && user.email === ADMIN_EMAIL) {
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session && session.user && session.user.email === ADMIN_EMAIL) {
     isAdmin = true;
-    adminEmail.textContent = user.email;
+    adminEmail.textContent = session.user.email;
     adminBar.classList.remove('hidden');
     renderProjects(allProjects); // re-render with edit buttons
-    startFirestoreListener();
   } else {
     isAdmin = false;
     adminBar.classList.add('hidden');
-    if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
     renderProjects(allProjects); // re-render without edit buttons
   }
 });
-
-// ── Firestore real-time listener (admin only) ─────────────────────────────────
-function startFirestoreListener() {
-  if (firestoreUnsubscribe) return; // already listening
-  const q = query(collection(db, COLLECTION), orderBy('order', 'asc'));
-  firestoreUnsubscribe = onSnapshot(q,
-    snap => {
-      allProjects = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
-      renderProjects(allProjects);
-    },
-    _err => {
-      // Index not ready — fall back to unordered
-      if (firestoreUnsubscribe) firestoreUnsubscribe();
-      firestoreUnsubscribe = onSnapshot(collection(db, COLLECTION), snap => {
-        allProjects = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
-        allProjects.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-        renderProjects(allProjects);
-      });
-    }
-  );
-}
 
 // ── Add Project button ────────────────────────────────────────────────────────
 addProjectBtn.addEventListener('click', () => openNewModal());
@@ -190,7 +114,8 @@ function buildCard(p) {
     p.category === 'web' ? 'אתר' : p.category === 'tool' ? 'כלי' : 'אפליקציה';
   card.querySelector('.card-year').textContent = p.year || '';
   card.querySelector('.card-title').textContent = p.title;
-  card.querySelector('.card-desc').textContent = p.desc;
+  // Table uses `description`, UI uses `desc` — support both
+  card.querySelector('.card-desc').textContent = p.desc || p.description || '';
 
   const tagsEl = card.querySelector('.card-tags');
   (p.tags || []).forEach(t => {
@@ -244,16 +169,24 @@ filterBtns.forEach(btn => {
   });
 });
 
-// ── Initial load (Firestore or static) ───────────────────────────────────────
+// ── Initial load (Supabase or static) ────────────────────────────────────────
 async function loadProjects() {
   try {
-    const q = query(collection(db, COLLECTION), orderBy('order', 'asc'));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      return snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .order('order', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      // Map `description` column → `desc` for UI compatibility
+      return data.map(row => ({
+        docId: row.id,
+        ...row,
+        desc: row.description || row.desc || ''
+      }));
     }
   } catch (_) {
-    // Firestore not set up yet or network error
+    // Network error or table not set up yet
   }
   return STATIC_PROJECTS;
 }
@@ -285,7 +218,7 @@ function openEditModal(docId) {
   editModalTitle.textContent = 'עריכת פרויקט';
   mEditTitle.value    = p.title || '';
   mEditEmoji.value    = p.emoji || '📱';
-  mEditDesc.value     = p.desc || '';
+  mEditDesc.value     = p.desc || p.description || '';
   mEditCategory.value = p.category || 'app';
   mEditYear.value     = p.year || '';
   mEditLink.value     = p.link || '';
@@ -357,29 +290,33 @@ function clearImgPreview() {
   mEditPreviewPH.classList.remove('hidden');
 }
 
-// ── Upload image to Storage ───────────────────────────────────────────────────
+// ── Upload image to Supabase Storage ─────────────────────────────────────────
+// NOTE: Run this SQL in Supabase SQL editor to set up storage policies:
+//
+//   create policy "Admin upload" on storage.objects for insert
+//     with check (bucket_id = 'portfolio-images' and auth.email() = 'amichai85@gmail.com');
+//
+//   create policy "Public read" on storage.objects for select
+//     using (bucket_id = 'portfolio-images');
+//
 async function uploadImage(file, docId) {
-  return new Promise((resolve, reject) => {
-    const storageRef = ref(storage, `portfolio-images/${docId}/${Date.now()}_${file.name}`);
-    const task = uploadBytesResumable(storageRef, file);
-    mEditProgress.classList.remove('hidden');
-    task.on('state_changed',
-      snap => {
-        const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-        mEditProgFill.style.width = pct + '%';
-        mEditProgText.textContent = `מעלה... ${pct}%`;
-      },
-      err => {
-        mEditProgress.classList.add('hidden');
-        reject(err);
-      },
-      async () => {
-        mEditProgress.classList.add('hidden');
-        const url = await getDownloadURL(task.snapshot.ref);
-        resolve(url);
-      }
-    );
-  });
+  mEditProgress.classList.remove('hidden');
+  mEditProgFill.style.width = '0%';
+  mEditProgText.textContent = 'מעלה...';
+
+  const ext = file.name.split('.').pop();
+  const path = `${docId}/${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: true });
+
+  mEditProgress.classList.add('hidden');
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────────
@@ -400,25 +337,39 @@ editForm.addEventListener('submit', async e => {
       try {
         finalImageUrl = await uploadImage(pendingImageFile, docId);
       } catch (uploadErr) {
-        showToast('שגיאה בהעלאת תמונה — ודא שהפעלת Firebase Storage', 'error');
+        showToast('שגיאה בהעלאת תמונה — ודא שהגדרת את מדיניות האחסון ב-Supabase', 'error');
         setSaving(false);
         return;
       }
     }
 
     const data = {
-      title:    mEditTitle.value.trim(),
-      emoji:    mEditEmoji.value.trim() || '📱',
-      desc:     mEditDesc.value.trim(),
-      link:     mEditLink.value.trim() || null,
-      year:     mEditYear.value.trim() || new Date().getFullYear().toString(),
-      category: mEditCategory.value,
-      order:    parseInt(mEditOrder.value) || 0,
-      tags:     mEditTags.value.split(',').map(t => t.trim()).filter(Boolean),
-      imageUrl: finalImageUrl
+      id:          docId,
+      title:       mEditTitle.value.trim(),
+      emoji:       mEditEmoji.value.trim() || '📱',
+      description: mEditDesc.value.trim(),
+      link:        mEditLink.value.trim() || null,
+      year:        mEditYear.value.trim() || new Date().getFullYear().toString(),
+      category:    mEditCategory.value,
+      order:       parseInt(mEditOrder.value) || 0,
+      tags:        mEditTags.value.split(',').map(t => t.trim()).filter(Boolean),
+      imageUrl:    finalImageUrl
     };
 
-    await setDoc(doc(db, COLLECTION, docId), data);
+    const { error } = await supabase.from(TABLE).upsert(data);
+    if (error) throw error;
+
+    // Update local state
+    const localRecord = { ...data, docId, desc: data.description };
+    const idx = allProjects.findIndex(x => x.docId === docId);
+    if (idx >= 0) {
+      allProjects[idx] = localRecord;
+    } else {
+      allProjects.push(localRecord);
+    }
+    allProjects.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+    renderProjects(allProjects);
+
     pendingImageFile = null;
     editingDocId = docId;
     showToast('נשמר בהצלחה ✓', 'success');
@@ -450,7 +401,12 @@ confirmDeleteYesBtn.addEventListener('click', async () => {
   confirmDeleteOverlay.classList.add('hidden');
   if (!editingDocId) return;
   try {
-    await deleteDoc(doc(db, COLLECTION, editingDocId));
+    const { error } = await supabase.from(TABLE).delete().eq('id', editingDocId);
+    if (error) throw error;
+
+    allProjects = allProjects.filter(x => x.docId !== editingDocId);
+    renderProjects(allProjects);
+
     hideModal();
     showToast('הפרויקט נמחק', 'success');
   } catch (err) {
