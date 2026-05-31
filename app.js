@@ -285,6 +285,21 @@ function showImgPreview(src) {
   mEditPreviewImg.classList.remove('hidden');
   mEditPreviewPH.classList.add('hidden');
 }
+
+// ── Paste image from clipboard (Ctrl+V) ──────────────────────────────────────
+document.addEventListener('paste', e => {
+  if (editModal && !editModal.classList.contains('hidden')) {
+    const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
+    if (item) {
+      const file = item.getAsFile();
+      pendingImageFile = file;
+      mEditImageUrl.value = '';
+      const reader = new FileReader();
+      reader.onload = ev => showImgPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  }
+});
 function clearImgPreview() {
   mEditPreviewImg.src = '';
   mEditPreviewImg.classList.add('hidden');
