@@ -108,7 +108,8 @@ async function loadProjects() {
     projects = data.map(row => ({
       docId: row.id,
       ...row,
-      desc: row.description || row.desc || ''
+      desc: row.description || row.desc || '',
+      imageUrl: row.image_url || row.imageUrl || null
     }));
   } else {
     projects = [];
@@ -298,7 +299,7 @@ projectForm.addEventListener('submit', async e => {
       category:    fieldCategory.value,
       order:       parseInt(fieldOrder.value) || 0,
       tags:        fieldTags.value.split(',').map(t => t.trim()).filter(Boolean),
-      imageUrl:    finalImageUrl
+      image_url:   finalImageUrl
     };
 
     const { error } = await supabase.from(TABLE).upsert(record);
@@ -359,12 +360,12 @@ if (seedBtn) {
     try {
       for (let i = 0; i < STATIC_PROJECTS.length; i++) {
         const p = STATIC_PROJECTS[i];
-        const { image, ...rest } = p;
+        const { id, desc, image, ...rest } = p;
         const { error } = await supabase.from(TABLE).upsert({
-          id:          p.id,
+          id,
           ...rest,
-          description: rest.desc || '',
-          imageUrl:    image || null,
+          description: desc || '',
+          image_url:   image || null,
           order:       i
         });
         if (error) throw error;

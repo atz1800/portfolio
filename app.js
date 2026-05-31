@@ -182,7 +182,8 @@ async function loadProjects() {
       return data.map(row => ({
         docId: row.id,
         ...row,
-        desc: row.description || row.desc || ''
+        desc:     row.description || row.desc || '',
+        imageUrl: row.image_url   || row.imageUrl || null
       }));
     }
   } catch (_) {
@@ -353,14 +354,14 @@ editForm.addEventListener('submit', async e => {
       category:    mEditCategory.value,
       order:       parseInt(mEditOrder.value) || 0,
       tags:        mEditTags.value.split(',').map(t => t.trim()).filter(Boolean),
-      imageUrl:    finalImageUrl
+      image_url:   finalImageUrl
     };
 
     const { error } = await supabase.from(TABLE).upsert(data);
     if (error) throw error;
 
     // Update local state
-    const localRecord = { ...data, docId, desc: data.description };
+    const localRecord = { ...data, docId, desc: data.description, imageUrl: data.image_url };
     const idx = allProjects.findIndex(x => x.docId === docId);
     if (idx >= 0) {
       allProjects[idx] = localRecord;
