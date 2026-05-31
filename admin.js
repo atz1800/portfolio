@@ -267,33 +267,59 @@ function updateSidebarActive() {
 // ── Gallery ───────────────────────────────────────────────────────────────────
 function renderGallery() {
   galleryGrid.querySelectorAll('.gallery-thumb-wrap').forEach(el => el.remove());
-  const addBtn = galleryGrid.querySelector('.gallery-add-btn');
+  const addLabel = galleryGrid.querySelector('.gallery-add-btn');
   galleryImages.forEach((item, idx) => {
     const wrap = document.createElement('div');
-    wrap.className = 'gallery-thumb-wrap';
+    wrap.className = 'gallery-thumb-wrap' + (item.file ? ' pending' : '');
     const img = document.createElement('img');
     img.className = 'gallery-thumb';
     img.src = item.src;
     img.alt = '';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'gallery-remove-btn';
-    btn.textContent = '×';
-    btn.title = 'הסר';
-    btn.addEventListener('click', () => { galleryImages.splice(idx, 1); renderGallery(); });
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'gallery-remove-btn';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'הסר';
+    removeBtn.addEventListener('click', () => { galleryImages.splice(idx, 1); renderGallery(); });
     wrap.appendChild(img);
-    wrap.appendChild(btn);
-    galleryGrid.insertBefore(wrap, addBtn);
+    wrap.appendChild(removeBtn);
+    if (item.file) {
+      const badge = document.createElement('span');
+      badge.className = 'gallery-pending-badge';
+      badge.title = 'ממתין להעלאה — לחץ שמור';
+      badge.textContent = '↑';
+      wrap.appendChild(badge);
+    }
+    galleryGrid.insertBefore(wrap, addLabel);
   });
 }
 
+function addFilesToGallery(files) {
+  Array.from(files)
+    .filter(f => f.type.startsWith('image/'))
+    .forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => { galleryImages.push({ src: e.target.result, file }); renderGallery(); };
+      reader.readAsDataURL(file);
+    });
+}
+
 galleryImageFile.addEventListener('change', () => {
-  Array.from(galleryImageFile.files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => { galleryImages.push({ src: e.target.result, file }); renderGallery(); };
-    reader.readAsDataURL(file);
-  });
+  addFilesToGallery(galleryImageFile.files);
   galleryImageFile.value = '';
+});
+
+galleryGrid.addEventListener('dragover', e => {
+  e.preventDefault();
+  galleryGrid.classList.add('drag-over');
+});
+galleryGrid.addEventListener('dragleave', e => {
+  if (!galleryGrid.contains(e.relatedTarget)) galleryGrid.classList.remove('drag-over');
+});
+galleryGrid.addEventListener('drop', e => {
+  e.preventDefault();
+  galleryGrid.classList.remove('drag-over');
+  addFilesToGallery(e.dataTransfer.files);
 });
 
 // ── Paste image from clipboard (Ctrl+V) ──────────────────────────────────────
@@ -386,6 +412,7 @@ projectForm.addEventListener('submit', async e => {
     if (error) throw error;
 
     galleryImages = finalUrls.map(src => ({ src, file: null }));
+    renderGallery();
     showToast('נשמר בהצלחה ✓', 'success');
     selectedDocId = docId;
     fieldDocId.value = docId;

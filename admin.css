@@ -678,6 +678,33 @@ textarea.input-field { resize: vertical; min-height: 80px; }
   color: var(--accent);
 }
 
+.gallery-grid.drag-over {
+  border-color: var(--accent);
+  background: rgba(108, 99, 255, 0.06);
+}
+
+.gallery-thumb-wrap.pending {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
+.gallery-pending-badge {
+  position: absolute;
+  bottom: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   /* Body scrolls normally */
