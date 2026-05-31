@@ -34,7 +34,14 @@ const deleteModal  = document.getElementById('deleteModal');
 const deleteModalName = document.getElementById('deleteModalName');
 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 const cancelDeleteBtn  = document.getElementById('cancelDeleteBtn');
-const toast        = document.getElementById('toast');
+const toast            = document.getElementById('toast');
+const changePassBtn    = document.getElementById('changePassBtn');
+const changePassModal  = document.getElementById('changePassModal');
+const newPasswordInput = document.getElementById('newPassword');
+const newPassword2Input= document.getElementById('newPassword2');
+const changePassError  = document.getElementById('changePassError');
+const confirmChangePassBtn = document.getElementById('confirmChangePassBtn');
+const cancelChangePassBtn  = document.getElementById('cancelChangePassBtn');
 
 const galleryGrid      = document.getElementById('galleryGrid');
 const galleryImageFile = document.getElementById('galleryImageFile');
@@ -410,3 +417,27 @@ function catLabel(cat) {
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ── Change password ───────────────────────────────────────────────────────────
+changePassBtn.addEventListener('click', () => {
+  newPasswordInput.value = '';
+  newPassword2Input.value = '';
+  changePassError.textContent = '';
+  changePassModal.classList.remove('hidden');
+  newPasswordInput.focus();
+});
+cancelChangePassBtn.addEventListener('click', () => changePassModal.classList.add('hidden'));
+
+confirmChangePassBtn.addEventListener('click', async () => {
+  const p1 = newPasswordInput.value;
+  const p2 = newPassword2Input.value;
+  changePassError.textContent = '';
+  if (p1.length < 6) { changePassError.textContent = 'סיסמה חייבת להיות לפחות 6 תווים.'; return; }
+  if (p1 !== p2)     { changePassError.textContent = 'הסיסמאות אינן תואמות.'; return; }
+  confirmChangePassBtn.disabled = true;
+  const { error } = await supabase.auth.updateUser({ password: p1 });
+  confirmChangePassBtn.disabled = false;
+  if (error) { changePassError.textContent = 'שגיאה: ' + error.message; return; }
+  changePassModal.classList.add('hidden');
+  showToast('סיסמה עודכנה בהצלחה ✓', 'success');
+});
