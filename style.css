@@ -60,7 +60,7 @@ body {
 .logo-bracket { color: var(--accent); }
 .logo-name { color: var(--text); }
 
-.nav-links { display: flex; gap: 28px; }
+.nav-links { display: flex; gap: 28px; align-items: center; }
 .nav-links a {
   color: var(--text-dim);
   text-decoration: none;
@@ -69,6 +69,13 @@ body {
   transition: color var(--transition);
 }
 .nav-links a:hover { color: var(--text); }
+.nav-admin-icon {
+  color: rgba(255,255,255,0.15) !important;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+}
+.nav-admin-icon:hover { color: var(--text-dim) !important; }
 
 /* ===== HERO ===== */
 .hero {

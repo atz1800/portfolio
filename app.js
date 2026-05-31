@@ -24,6 +24,7 @@ const adminEmail     = document.getElementById('adminEmail');
 const addProjectBtn  = document.getElementById('addProjectBtn');
 const adminLogoutBtn = document.getElementById('adminLogoutBtn');
 const adminGearBtn   = document.getElementById('adminGearBtn');
+const adminNavBtn    = document.getElementById('adminNavBtn');
 
 const editModal      = document.getElementById('editModal');
 const editModalTitle = document.getElementById('editModalTitle');
@@ -58,15 +59,15 @@ const confirmDeleteNoBtn    = document.getElementById('confirmDeleteNoBtn');
 const adminToast     = document.getElementById('adminToast');
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-adminGearBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
+function handleAdminLinkClick(e) {
   if (isAdmin) {
+    e.preventDefault();
     adminBar.scrollIntoView({ behavior: 'smooth' });
-    return;
   }
-  // Navigate to admin page for magic link login
-  window.location.href = 'admin.html';
-});
+  // else: let the <a href="admin.html"> navigate naturally (reliable on mobile)
+}
+adminGearBtn.addEventListener('click', handleAdminLinkClick);
+if (adminNavBtn) adminNavBtn.addEventListener('click', handleAdminLinkClick);
 
 adminLogoutBtn.addEventListener('click', () => supabase.auth.signOut());
 
