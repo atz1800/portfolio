@@ -109,6 +109,21 @@ html, body {
 .btn-magic-link:hover { background: var(--accent-hover); }
 .btn-magic-link:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.btn-forgot-pass {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  padding: 10px 0 0;
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: center;
+  transition: color var(--transition);
+}
+.btn-forgot-pass:hover { color: var(--text); }
+
 .login-sent {
   margin-top: 14px;
   color: var(--success);

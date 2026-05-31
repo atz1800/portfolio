@@ -19,10 +19,13 @@
         <span>ניהול</span>
         <span class="logo-bracket">}</span>
       </div>
-      <h1 class="login-title">כניסת מנהל</h1>
-      <p class="login-sub">כניסה מותרת לבעל האתר בלבד</p>
+      <h1 class="login-title" id="loginTitle">כניסת מנהל</h1>
+      <p class="login-sub" id="loginSub">כניסה מותרת לבעל האתר בלבד</p>
       <input type="password" id="loginPassword" class="input-field login-email-input" placeholder="סיסמה" autocomplete="current-password" />
+      <input type="password" id="loginPassword2" class="input-field login-email-input hidden" placeholder="אשר סיסמה חדשה" autocomplete="new-password" style="margin-top:8px" />
       <button id="loginBtn" class="btn-magic-link">כניסה</button>
+      <button id="forgotPassBtn" class="btn-forgot-pass">שכחתי סיסמה — שלח קישור למייל</button>
+      <p id="loginSentMsg" class="login-sent hidden">קישור נשלח ל־amichai85@gmail.com ✓</p>
       <p id="loginError" class="login-error"></p>
     </div>
   </div>

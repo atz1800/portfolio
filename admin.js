@@ -14,8 +14,13 @@ let galleryImages = []; // { src: string, file: File|null }
 const loginScreen  = document.getElementById('loginScreen');
 const dashboard    = document.getElementById('dashboard');
 const loginError        = document.getElementById('loginError');
+const loginSentMsg      = document.getElementById('loginSentMsg');
+const loginTitle        = document.getElementById('loginTitle');
+const loginSub          = document.getElementById('loginSub');
 const loginPasswordInput= document.getElementById('loginPassword');
+const loginPassword2    = document.getElementById('loginPassword2');
 const loginBtn          = document.getElementById('loginBtn');
+const forgotPassBtn     = document.getElementById('forgotPassBtn');
 const logoutBtn    = document.getElementById('logoutBtn');
 const addBtn       = document.getElementById('addBtn');
 const seedBtn      = document.getElementById('seedBtn');
@@ -60,44 +65,98 @@ const fieldCategory= document.getElementById('fieldCategory');
 const fieldOrder   = document.getElementById('fieldOrder');
 const fieldTags    = document.getElementById('fieldTags');
 
-// ── Auth — Password ───────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────────
+let recoveryMode = false;
+
+function setRecoveryMode(on) {
+  recoveryMode = on;
+  loginTitle.textContent   = on ? 'קביעת סיסמה חדשה' : 'כניסת מנהל';
+  loginSub.textContent     = on ? 'הכנס סיסמה חדשה' : 'כניסה מותרת לבעל האתר בלבד';
+  loginBtn.textContent     = on ? 'קבע סיסמה' : 'כניסה';
+  loginPassword2.classList.toggle('hidden', !on);
+  forgotPassBtn.classList.toggle('hidden', on);
+  loginPasswordInput.placeholder = on ? 'סיסמה חדשה' : 'סיסמה';
+  loginPasswordInput.value = '';
+  loginPassword2.value     = '';
+  loginError.textContent   = '';
+  loginPasswordInput.focus();
+}
+
 async function doLogin() {
   loginError.textContent = '';
   const password = loginPasswordInput.value;
-  if (!password) {
-    loginPasswordInput.focus();
-    return;
-  }
+  if (!password) { loginPasswordInput.focus(); return; }
+
   loginBtn.disabled = true;
-  loginBtn.textContent = 'מתחבר...';
-  try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: ADMIN_EMAIL,
-      password
-    });
-    if (error) throw error;
-  } catch (e) {
-    loginError.textContent = 'סיסמה שגויה.';
-    loginBtn.disabled = false;
-    loginBtn.textContent = 'כניסה';
-    loginPasswordInput.value = '';
-    loginPasswordInput.focus();
+  loginBtn.textContent = recoveryMode ? 'שומר...' : 'מתחבר...';
+
+  if (recoveryMode) {
+    // Set new password after recovery link
+    const p2 = loginPassword2.value;
+    if (password.length < 6) {
+      loginError.textContent = 'סיסמה חייבת להיות לפחות 6 תווים.';
+      loginBtn.disabled = false; loginBtn.textContent = 'קבע סיסמה'; return;
+    }
+    if (password !== p2) {
+      loginError.textContent = 'הסיסמאות אינן תואמות.';
+      loginBtn.disabled = false; loginBtn.textContent = 'קבע סיסמה'; return;
+    }
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      loginError.textContent = 'שגיאה: ' + error.message;
+      loginBtn.disabled = false; loginBtn.textContent = 'קבע סיסמה';
+    }
+    // on success onAuthStateChange fires → dashboard shows automatically
+  } else {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password });
+      if (error) throw error;
+    } catch (e) {
+      loginError.textContent = 'סיסמה שגויה.';
+      loginBtn.disabled = false; loginBtn.textContent = 'כניסה';
+      loginPasswordInput.value = ''; loginPasswordInput.focus();
+    }
   }
 }
+
 loginBtn.addEventListener('click', doLogin);
 loginPasswordInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+loginPassword2.addEventListener('keydown',     e => { if (e.key === 'Enter') doLogin(); });
+
+// Forgot password → send recovery email
+forgotPassBtn.addEventListener('click', async () => {
+  forgotPassBtn.disabled = true;
+  loginError.textContent = '';
+  const { error } = await supabase.auth.resetPasswordForEmail(ADMIN_EMAIL, {
+    redirectTo: window.location.href
+  });
+  if (error) {
+    loginError.textContent = 'שגיאה בשליחה: ' + error.message;
+    forgotPassBtn.disabled = false;
+  } else {
+    loginSentMsg.classList.remove('hidden');
+    forgotPassBtn.textContent = 'נשלח ✓';
+  }
+});
 
 logoutBtn.addEventListener('click', () => supabase.auth.signOut());
 
 supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    loginScreen.classList.remove('hidden');
+    dashboard.classList.add('hidden');
+    setRecoveryMode(true);
+    return;
+  }
   if (session && session.user && session.user.email === ADMIN_EMAIL) {
+    setRecoveryMode(false);
     loginScreen.classList.add('hidden');
     dashboard.classList.remove('hidden');
     loadProjects();
   } else {
     loginScreen.classList.remove('hidden');
     dashboard.classList.add('hidden');
-    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'כניסה'; }
+    loginBtn.disabled = false;
   }
 });
 
