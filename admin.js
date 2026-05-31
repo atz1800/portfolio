@@ -8,7 +8,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ── State ─────────────────────────────────────────────────────────────────────
 let projects = [];
 let selectedDocId = null;
-let pendingImageFile = null;
+let galleryImages = []; // { src: string, file: File|null }
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const loginScreen  = document.getElementById('loginScreen');
@@ -37,13 +37,11 @@ const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 const cancelDeleteBtn  = document.getElementById('cancelDeleteBtn');
 const toast        = document.getElementById('toast');
 
-const imageFile    = document.getElementById('imageFile');
-const imageUrl     = document.getElementById('imageUrl');
-const previewImg   = document.getElementById('previewImg');
-const previewPlaceholder = document.getElementById('previewPlaceholder');
-const uploadProgress = document.getElementById('uploadProgress');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
+const galleryGrid      = document.getElementById('galleryGrid');
+const galleryImageFile = document.getElementById('galleryImageFile');
+const uploadProgress   = document.getElementById('uploadProgress');
+const progressFill     = document.getElementById('progressFill');
+const progressText     = document.getElementById('progressText');
 
 // Form fields
 const fieldDocId   = document.getElementById('fieldDocId');
@@ -108,8 +106,9 @@ async function loadProjects() {
     projects = data.map(row => ({
       docId: row.id,
       ...row,
-      desc: row.description || row.desc || '',
-      imageUrl: row.image_url || row.imageUrl || null
+      desc:     row.description || row.desc || '',
+      imageUrl: row.image_url   || row.imageUrl || null,
+      images:   row.images      || []
     }));
   } else {
     projects = [];
@@ -157,8 +156,8 @@ function openNewPanel() {
   fieldDocId.value = '';
   fieldYear.value = new Date().getFullYear().toString();
   fieldOrder.value = projects.length;
-  clearImagePreview();
-  pendingImageFile = null;
+  galleryImages = [];
+  renderGallery();
   deleteBtn.classList.add('hidden');
   editPanel.classList.remove('hidden');
   updateSidebarActive();
@@ -179,14 +178,10 @@ function openEditPanel(docId) {
   fieldCategory.value = p.category || 'app';
   fieldOrder.value = p.order ?? '';
   fieldTags.value = (p.tags || []).join(', ');
-  imageUrl.value = '';
-  pendingImageFile = null;
-  if (p.imageUrl) {
-    showImagePreview(p.imageUrl);
-    imageUrl.value = p.imageUrl;
-  } else {
-    clearImagePreview();
-  }
+  galleryImages = (p.images && p.images.length > 0)
+    ? p.images.filter(Boolean).map(src => ({ src, file: null }))
+    : p.imageUrl ? [{ src: p.imageUrl, file: null }] : [];
+  renderGallery();
   deleteBtn.classList.remove('hidden');
   editPanel.classList.remove('hidden');
   updateSidebarActive();
@@ -204,49 +199,46 @@ function updateSidebarActive() {
   });
 }
 
-// ── Image preview ─────────────────────────────────────────────────────────────
-imageFile.addEventListener('change', () => {
-  const file = imageFile.files[0];
-  if (!file) return;
-  pendingImageFile = file;
-  imageUrl.value = '';
-  const reader = new FileReader();
-  reader.onload = e => showImagePreview(e.target.result);
-  reader.readAsDataURL(file);
-});
-
-imageUrl.addEventListener('input', () => {
-  const url = imageUrl.value.trim();
-  if (url) {
-    pendingImageFile = null;
-    imageFile.value = '';
-    showImagePreview(url);
-  } else {
-    clearImagePreview();
-  }
-});
-
-function showImagePreview(src) {
-  previewImg.src = src;
-  previewImg.classList.remove('hidden');
-  previewPlaceholder.classList.add('hidden');
+// ── Gallery ───────────────────────────────────────────────────────────────────
+function renderGallery() {
+  galleryGrid.querySelectorAll('.gallery-thumb-wrap').forEach(el => el.remove());
+  const addBtn = galleryGrid.querySelector('.gallery-add-btn');
+  galleryImages.forEach((item, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'gallery-thumb-wrap';
+    const img = document.createElement('img');
+    img.className = 'gallery-thumb';
+    img.src = item.src;
+    img.alt = '';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gallery-remove-btn';
+    btn.textContent = '×';
+    btn.title = 'הסר';
+    btn.addEventListener('click', () => { galleryImages.splice(idx, 1); renderGallery(); });
+    wrap.appendChild(img);
+    wrap.appendChild(btn);
+    galleryGrid.insertBefore(wrap, addBtn);
+  });
 }
-function clearImagePreview() {
-  previewImg.src = '';
-  previewImg.classList.add('hidden');
-  previewPlaceholder.classList.remove('hidden');
-}
+
+galleryImageFile.addEventListener('change', () => {
+  Array.from(galleryImageFile.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { galleryImages.push({ src: e.target.result, file }); renderGallery(); };
+    reader.readAsDataURL(file);
+  });
+  galleryImageFile.value = '';
+});
 
 // ── Paste image from clipboard (Ctrl+V) ──────────────────────────────────────
 document.addEventListener('paste', e => {
   if (!editPanel.classList.contains('hidden')) {
-    const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
-    if (item) {
-      const file = item.getAsFile();
-      pendingImageFile = file;
-      imageUrl.value = '';
+    const clipItem = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
+    if (clipItem) {
+      const file = clipItem.getAsFile();
       const reader = new FileReader();
-      reader.onload = ev => showImagePreview(ev.target.result);
+      reader.onload = ev => { galleryImages.push({ src: ev.target.result, file }); renderGallery(); };
       reader.readAsDataURL(file);
     }
   }
@@ -266,18 +258,21 @@ async function uploadImage(file, docId) {
   progressFill.style.width = '0%';
   progressText.textContent = 'מעלה...';
 
-  const ext = file.name.split('.').pop();
-  const path = `${docId}/${Date.now()}.${ext}`;
+  try {
+    const ext = (file.type || 'image/png').split('/')[1] || 'png';
+    const path = `${docId}/${Date.now()}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { upsert: true });
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { upsert: true });
 
-  uploadProgress.classList.add('hidden');
-  if (error) throw error;
+    if (error) throw error;
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  } finally {
+    uploadProgress.classList.add('hidden');
+  }
 }
 
 // ── Save project ──────────────────────────────────────────────────────────────
@@ -292,15 +287,19 @@ projectForm.addEventListener('submit', async e => {
 
   try {
     const docId = fieldDocId.value || crypto.randomUUID();
-    let finalImageUrl = imageUrl.value.trim() || null;
-
-    if (pendingImageFile) {
-      try {
-        finalImageUrl = await uploadImage(pendingImageFile, docId);
-      } catch (uploadErr) {
-        showToast('שגיאה בהעלאת תמונה — ודא שהגדרת את מדיניות האחסון ב-Supabase', 'error');
-        setSaving(false);
-        return;
+    // Upload any new files, keep existing URLs as-is
+    const finalUrls = [];
+    for (const item of galleryImages) {
+      if (item.file) {
+        try {
+          finalUrls.push(await uploadImage(item.file, docId));
+        } catch (uploadErr) {
+          showToast('שגיאה בהעלאה: ' + (uploadErr.message || uploadErr), 'error');
+          setSaving(false);
+          return;
+        }
+      } else {
+        finalUrls.push(item.src);
       }
     }
 
@@ -314,13 +313,14 @@ projectForm.addEventListener('submit', async e => {
       category:    fieldCategory.value,
       order:       parseInt(fieldOrder.value) || 0,
       tags:        fieldTags.value.split(',').map(t => t.trim()).filter(Boolean),
-      image_url:   finalImageUrl
+      image_url:   finalUrls[0] || null,
+      images:      finalUrls
     };
 
     const { error } = await supabase.from(TABLE).upsert(record);
     if (error) throw error;
 
-    pendingImageFile = null;
+    galleryImages = finalUrls.map(src => ({ src, file: null }));
     showToast('נשמר בהצלחה ✓', 'success');
     selectedDocId = docId;
     fieldDocId.value = docId;
@@ -401,7 +401,7 @@ function showToast(msg, type = '') {
   toast.textContent = msg;
   toast.className = `toast show${type ? ' ' + type : ''}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), type === 'error' ? 6000 : 3000);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
