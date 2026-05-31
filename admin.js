@@ -13,10 +13,9 @@ let galleryImages = []; // { src: string, file: File|null }
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const loginScreen  = document.getElementById('loginScreen');
 const dashboard    = document.getElementById('dashboard');
-const loginError   = document.getElementById('loginError');
-const loginEmailInput = document.getElementById('loginEmail');
-const loginBtn     = document.getElementById('loginBtn');
-const loginSentMsg = document.getElementById('loginSentMsg');
+const loginError        = document.getElementById('loginError');
+const loginPasswordInput= document.getElementById('loginPassword');
+const loginBtn          = document.getElementById('loginBtn');
 const logoutBtn    = document.getElementById('logoutBtn');
 const addBtn       = document.getElementById('addBtn');
 const seedBtn      = document.getElementById('seedBtn');
@@ -54,31 +53,32 @@ const fieldCategory= document.getElementById('fieldCategory');
 const fieldOrder   = document.getElementById('fieldOrder');
 const fieldTags    = document.getElementById('fieldTags');
 
-// ── Auth — Magic Link (OTP) ───────────────────────────────────────────────────
-loginBtn.addEventListener('click', async () => {
+// ── Auth — Password ───────────────────────────────────────────────────────────
+async function doLogin() {
   loginError.textContent = '';
-  const email = loginEmailInput.value.trim();
-  if (!email) {
-    loginError.textContent = 'יש להזין כתובת מייל.';
-    loginEmailInput.focus();
+  const password = loginPasswordInput.value;
+  if (!password) {
+    loginPasswordInput.focus();
     return;
   }
-  if (email !== ADMIN_EMAIL) {
-    loginError.textContent = 'גישה מורשית לבעל האתר בלבד.';
-    return;
-  }
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'מתחבר...';
   try {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.href }
+    const { error } = await supabase.auth.signInWithPassword({
+      email: ADMIN_EMAIL,
+      password
     });
     if (error) throw error;
-    if (loginSentMsg) loginSentMsg.classList.remove('hidden');
-    loginBtn.disabled = true;
   } catch (e) {
-    loginError.textContent = 'שגיאה בשליחה. נסה שוב.';
+    loginError.textContent = 'סיסמה שגויה.';
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'כניסה';
+    loginPasswordInput.value = '';
+    loginPasswordInput.focus();
   }
-});
+}
+loginBtn.addEventListener('click', doLogin);
+loginPasswordInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 logoutBtn.addEventListener('click', () => supabase.auth.signOut());
 
@@ -90,8 +90,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   } else {
     loginScreen.classList.remove('hidden');
     dashboard.classList.add('hidden');
-    if (loginBtn) loginBtn.disabled = false;
-    if (loginSentMsg) loginSentMsg.classList.add('hidden');
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'כניסה'; }
   }
 });
 
