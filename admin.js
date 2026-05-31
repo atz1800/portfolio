@@ -237,6 +237,21 @@ function clearImagePreview() {
   previewPlaceholder.classList.remove('hidden');
 }
 
+// ── Paste image from clipboard (Ctrl+V) ──────────────────────────────────────
+document.addEventListener('paste', e => {
+  if (!editPanel.classList.contains('hidden')) {
+    const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
+    if (item) {
+      const file = item.getAsFile();
+      pendingImageFile = file;
+      imageUrl.value = '';
+      const reader = new FileReader();
+      reader.onload = ev => showImagePreview(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  }
+});
+
 // ── Upload image to Supabase Storage ─────────────────────────────────────────
 // NOTE: Run this SQL in the Supabase SQL editor to set up storage policies:
 //
