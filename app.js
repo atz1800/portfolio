@@ -10,6 +10,7 @@ let isAdmin = false;
 let allProjects = [];
 let editingDocId = null;
 let pendingImageFile = null;
+let carouselIntervals = [];
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const grid           = document.getElementById('projectsGrid');
@@ -23,6 +24,7 @@ const adminEmail     = document.getElementById('adminEmail');
 const addProjectBtn  = document.getElementById('addProjectBtn');
 const adminLogoutBtn = document.getElementById('adminLogoutBtn');
 const adminGearBtn   = document.getElementById('adminGearBtn');
+const adminNavBtn    = document.getElementById('adminNavBtn');
 
 const editModal      = document.getElementById('editModal');
 const editModalTitle = document.getElementById('editModalTitle');
@@ -57,15 +59,15 @@ const confirmDeleteNoBtn    = document.getElementById('confirmDeleteNoBtn');
 const adminToast     = document.getElementById('adminToast');
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-adminGearBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
+function handleAdminLinkClick(e) {
   if (isAdmin) {
+    e.preventDefault();
     adminBar.scrollIntoView({ behavior: 'smooth' });
-    return;
   }
-  // Navigate to admin page for magic link login
-  window.location.href = 'admin.html';
-});
+  // else: let the <a href="admin.html"> navigate naturally (reliable on mobile)
+}
+adminGearBtn.addEventListener('click', handleAdminLinkClick);
+if (adminNavBtn) adminNavBtn.addEventListener('click', handleAdminLinkClick);
 
 adminLogoutBtn.addEventListener('click', () => supabase.auth.signOut());
 
@@ -93,17 +95,60 @@ function buildCard(p) {
 
   card.querySelector('.card-emoji').textContent = p.emoji || '📱';
 
-  const imgSrc = p.imageUrl || p.image || null;
-  if (imgSrc) {
-    const img = card.querySelector('.card-img');
-    img.src = imgSrc;
-    img.alt = p.title;
-    img.addEventListener('load', () => img.classList.add('loaded'));
+  // Multi-image carousel or single image
+  const galleryImgs = Array.isArray(p.images) && p.images.length > 0
+    ? p.images.filter(Boolean)
+    : [];
+  const singleImg = p.imageUrl || p.image || null;
+  const cardImageEl = card.querySelector('.card-image');
+  const existingImg = card.querySelector('.card-img');
+
+  if (galleryImgs.length > 1) {
+    existingImg.remove();
+    const carousel = document.createElement('div');
+    carousel.className = 'card-carousel';
+    galleryImgs.forEach((src, i) => {
+      const img = document.createElement('img');
+      img.className = 'carousel-slide' + (i === 0 ? ' active' : '');
+      img.src = src;
+      img.alt = p.title;
+      img.loading = 'lazy';
+      carousel.appendChild(img);
+    });
+    const dots = document.createElement('div');
+    dots.className = 'carousel-dots';
+    galleryImgs.forEach((_, i) => {
+      const dot = document.createElement('span');
+      dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+      dots.appendChild(dot);
+    });
+    carousel.appendChild(dots);
+    cardImageEl.insertBefore(carousel, cardImageEl.querySelector('.card-overlay'));
+    let cur = 0;
+    const slides = carousel.querySelectorAll('.carousel-slide');
+    const dotEls  = carousel.querySelectorAll('.carousel-dot');
+    const iid = setInterval(() => {
+      slides[cur].classList.remove('active');
+      dotEls[cur].classList.remove('active');
+      cur = (cur + 1) % galleryImgs.length;
+      slides[cur].classList.add('active');
+      dotEls[cur].classList.add('active');
+    }, 3500);
+    carouselIntervals.push(iid);
+  } else if (galleryImgs.length === 1 || singleImg) {
+    const src = galleryImgs[0] || singleImg;
+    existingImg.src = src;
+    existingImg.alt = p.title;
+    existingImg.addEventListener('load', () => existingImg.classList.add('loaded'));
   }
 
   const linkBtn = card.querySelector('.card-link-btn');
   if (p.link) {
     linkBtn.href = p.link;
+    linkBtn.addEventListener('click', e => e.stopPropagation());
+    // Make whole card clickable
+    card.classList.add('card-clickable');
+    card.addEventListener('click', () => window.open(p.link, '_blank', 'noopener,noreferrer'));
   } else {
     linkBtn.textContent = 'בקרוב';
     linkBtn.style.pointerEvents = 'none';
@@ -142,6 +187,8 @@ function buildCard(p) {
 }
 
 function renderProjects(projects) {
+  carouselIntervals.forEach(id => clearInterval(id));
+  carouselIntervals = [];
   grid.innerHTML = '';
   projects.forEach(p => grid.appendChild(buildCard(p)));
   if (projectCountEl) {
@@ -183,7 +230,8 @@ async function loadProjects() {
         docId: row.id,
         ...row,
         desc:     row.description || row.desc || '',
-        imageUrl: row.image_url   || row.imageUrl || null
+        imageUrl: row.image_url   || row.imageUrl || null,
+        images:   row.images      || []
       }));
     }
   } catch (_) {
@@ -375,8 +423,9 @@ editForm.addEventListener('submit', async e => {
     const { error } = await supabase.from(TABLE).upsert(data);
     if (error) throw error;
 
-    // Update local state
-    const localRecord = { ...data, docId, desc: data.description, imageUrl: data.image_url };
+    // Update local state (preserve images array — managed only in admin.html)
+    const existing = allProjects.find(x => x.docId === docId);
+    const localRecord = { ...data, docId, desc: data.description, imageUrl: data.image_url, images: existing?.images || [] };
     const idx = allProjects.findIndex(x => x.docId === docId);
     if (idx >= 0) {
       allProjects[idx] = localRecord;

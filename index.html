@@ -23,6 +23,7 @@
         <a href="#projects">פרויקטים</a>
         <a href="#about">אודות</a>
         <a href="#contact">צור קשר</a>
+        <a href="admin.html" id="adminNavBtn" class="nav-admin-icon" title="ניהול">⚙</a>
       </nav>
     </div>
   </header>
@@ -126,134 +127,13 @@
     </div>
   </section>
 
-  <!-- ADMIN BAR (hidden until logged in as admin) -->
-  <div id="adminBar" class="admin-bar hidden">
-    <div class="container admin-bar-inner">
-      <div class="admin-bar-info">
-        <span class="admin-bar-label">מצב עריכה</span>
-        <span id="adminEmail" class="admin-bar-email"></span>
-      </div>
-      <div class="admin-bar-actions">
-        <button id="addProjectBtn" class="admin-btn admin-btn-add">+ הוסף פרויקט</button>
-        <button id="adminLogoutBtn" class="admin-btn admin-btn-logout">יציאה</button>
-      </div>
-    </div>
-  </div>
-
   <!-- FOOTER -->
   <footer class="site-footer">
     <div class="container footer-inner">
       <span>© 2025 עמיחי</span>
-      <a href="admin.html" id="adminGearBtn" class="admin-footer-link">⚙</a>
+      <a href="admin.html" id="adminGearBtn" class="admin-footer-link" title="ניהול">⚙</a>
     </div>
   </footer>
-
-  <!-- EDIT MODAL -->
-  <div id="editModal" class="edit-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
-    <div class="edit-modal-panel">
-      <div class="edit-modal-header">
-        <h2 id="editModalTitle" class="edit-modal-heading">עריכת פרויקט</h2>
-        <button id="closeModalBtn" class="edit-modal-close" title="סגור" aria-label="סגור">&times;</button>
-      </div>
-
-      <form id="editForm" class="edit-modal-form" novalidate>
-
-        <!-- Image section -->
-        <div class="edit-form-section">
-          <label class="edit-section-label">תמונה</label>
-          <div class="edit-image-row">
-            <div class="edit-image-preview" id="mEditPreviewWrap">
-              <span id="mEditPreviewPH" class="edit-preview-placeholder">🖼️</span>
-              <img id="mEditPreviewImg" class="edit-preview-img hidden" alt="" />
-            </div>
-            <div class="edit-image-inputs">
-              <label class="edit-upload-label" for="mEditImageFile">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                העלה תמונה
-              </label>
-              <input type="file" id="mEditImageFile" accept="image/*" />
-              <div class="edit-url-row">
-                <span class="edit-or-label">או URL</span>
-                <input type="url" id="mEditImageUrl" class="edit-input" placeholder="https://..." />
-              </div>
-              <div id="mEditProgress" class="edit-progress hidden">
-                <div class="edit-progress-bar"><div id="mEditProgFill" class="edit-progress-fill"></div></div>
-                <span id="mEditProgText" class="edit-progress-text">מעלה...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Fields -->
-        <div class="edit-form-section">
-          <label class="edit-section-label">פרטים</label>
-          <div class="edit-form-grid">
-            <div class="edit-field-group edit-field-wide">
-              <label class="edit-field-label" for="mEditTitle">שם הפרויקט *</label>
-              <input type="text" id="mEditTitle" class="edit-input" required placeholder="שם הפרויקט" />
-            </div>
-            <div class="edit-field-group">
-              <label class="edit-field-label" for="mEditEmoji">אמוג'י</label>
-              <input type="text" id="mEditEmoji" class="edit-input edit-emoji-input" placeholder="📱" maxlength="4" />
-            </div>
-            <div class="edit-field-group edit-field-full">
-              <label class="edit-field-label" for="mEditDesc">תיאור</label>
-              <textarea id="mEditDesc" class="edit-input" rows="3" placeholder="תיאור קצר של הפרויקט..."></textarea>
-            </div>
-            <div class="edit-field-group edit-field-wide">
-              <label class="edit-field-label" for="mEditLink">קישור לפרויקט</label>
-              <input type="url" id="mEditLink" class="edit-input" placeholder="https://..." />
-            </div>
-            <div class="edit-field-group">
-              <label class="edit-field-label" for="mEditYear">שנה</label>
-              <input type="text" id="mEditYear" class="edit-input" placeholder="2025" />
-            </div>
-            <div class="edit-field-group">
-              <label class="edit-field-label" for="mEditCategory">קטגוריה</label>
-              <select id="mEditCategory" class="edit-input edit-select">
-                <option value="app">אפליקציה</option>
-                <option value="web">אתר</option>
-                <option value="tool">כלי</option>
-              </select>
-            </div>
-            <div class="edit-field-group">
-              <label class="edit-field-label" for="mEditOrder">סדר הצגה</label>
-              <input type="number" id="mEditOrder" class="edit-input" placeholder="0" min="0" />
-            </div>
-            <div class="edit-field-group edit-field-full">
-              <label class="edit-field-label" for="mEditTags">טכנולוגיות <span class="edit-field-hint">(מופרד בפסיקים)</span></label>
-              <input type="text" id="mEditTags" class="edit-input" placeholder="React, Firebase, PWA" />
-            </div>
-          </div>
-        </div>
-
-        <div class="edit-modal-actions">
-          <button type="submit" id="saveModalBtn" class="admin-btn admin-btn-save">
-            <span id="saveBtnText">שמור</span>
-            <span id="saveBtnSpinner" class="edit-spinner hidden"></span>
-          </button>
-          <button type="button" id="deleteModalBtn" class="admin-btn admin-btn-delete hidden">מחק פרויקט</button>
-        </div>
-
-      </form>
-    </div>
-  </div>
-
-  <!-- CONFIRM DELETE OVERLAY -->
-  <div id="confirmDeleteOverlay" class="confirm-overlay hidden" role="dialog" aria-modal="true">
-    <div class="confirm-box">
-      <h3 class="confirm-title">למחוק את הפרויקט?</h3>
-      <p id="confirmDeleteName" class="confirm-project-name"></p>
-      <p class="confirm-warning">פעולה זו לא ניתנת לביטול.</p>
-      <div class="confirm-actions">
-        <button id="confirmDeleteYesBtn" class="admin-btn admin-btn-delete">מחק</button>
-        <button id="confirmDeleteNoBtn" class="admin-btn admin-btn-cancel">ביטול</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ADMIN TOAST -->
-  <div id="adminToast" class="admin-toast" role="alert" aria-live="polite"></div>
 
   <!-- PROJECT CARD TEMPLATE -->
   <template id="cardTemplate">
