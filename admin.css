@@ -665,21 +665,45 @@ textarea.input-field { resize: vertical; min-height: 80px; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  html, body { overflow: auto; }
-  .dashboard { overflow: auto; height: auto; }
-  .admin-body {
-    flex-direction: column;
-    overflow: visible;
-  }
+  /* Body scrolls normally */
+  html, body { overflow: auto; height: auto; }
+
+  /* Dashboard fills viewport but scrolls */
+  .dashboard { height: 100dvh; overflow: hidden; }
+
+  /* Sidebar = full remaining height, scrollable list */
+  .admin-body { flex-direction: column; overflow: hidden; flex: 1; }
   .sidebar {
     width: 100%;
     border-left: none;
     border-bottom: 1px solid var(--border);
-    max-height: 280px;
+    flex: 1;          /* take all remaining height */
+    max-height: none; /* remove the 280px cap */
+    min-height: 0;
   }
-  .edit-panel {
-    overflow: visible;
+  .projects-list { flex: 1; overflow-y: auto; }
+
+  /* Edit panel = fullscreen overlay when open */
+  .edit-panel:not(.hidden) {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: var(--bg);
+    overflow-y: auto;
   }
+  .edit-panel { overflow: visible; }
+
+  /* Forms stack single column */
   .form-grid { grid-template-columns: 1fr; }
   .field-group.full { grid-column: 1; }
+
+  /* Bigger close button on mobile */
+  .btn-close {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+  }
+
+  /* Edit panel inner padding reduced on mobile */
+  .edit-panel-inner { padding: 20px 16px; }
 }
