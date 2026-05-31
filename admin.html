@@ -39,6 +39,7 @@
       <div class="header-actions">
         <button id="addBtn" class="btn-add">+ פרויקט חדש</button>
         <button id="seedBtn" class="btn-seed hidden" title="טען פרויקטים ברירת מחדל">טען</button>
+        <button id="changePassBtn" class="btn-logout" title="שנה סיסמה">🔑</button>
         <button id="logoutBtn" class="btn-logout">יציאה</button>
       </div>
     </header>
@@ -154,6 +155,20 @@
       <div class="modal-actions">
         <button id="confirmDeleteBtn" class="btn-delete">מחק</button>
         <button id="cancelDeleteBtn" class="btn-cancel-modal">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change password modal -->
+  <div id="changePassModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>שינוי סיסמה</h3>
+      <input type="password" id="newPassword" class="input-field" placeholder="סיסמה חדשה" style="margin:16px 0 8px" />
+      <input type="password" id="newPassword2" class="input-field" placeholder="חזור על הסיסמה" style="margin-bottom:20px" />
+      <p id="changePassError" style="color:var(--danger);font-size:.85rem;min-height:18px;margin-bottom:12px"></p>
+      <div class="modal-actions">
+        <button id="confirmChangePassBtn" class="btn-save" style="padding:10px 20px">שמור</button>
+        <button id="cancelChangePassBtn" class="btn-cancel-modal">ביטול</button>
       </div>
     </div>
   </div>
