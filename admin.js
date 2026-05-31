@@ -258,18 +258,21 @@ async function uploadImage(file, docId) {
   progressFill.style.width = '0%';
   progressText.textContent = 'מעלה...';
 
-  const ext = file.name.split('.').pop();
-  const path = `${docId}/${Date.now()}.${ext}`;
+  try {
+    const ext = (file.type || 'image/png').split('/')[1] || 'png';
+    const path = `${docId}/${Date.now()}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { upsert: true });
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { upsert: true });
 
-  uploadProgress.classList.add('hidden');
-  if (error) throw error;
+    if (error) throw error;
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  } finally {
+    uploadProgress.classList.add('hidden');
+  }
 }
 
 // ── Save project ──────────────────────────────────────────────────────────────
@@ -291,7 +294,7 @@ projectForm.addEventListener('submit', async e => {
         try {
           finalUrls.push(await uploadImage(item.file, docId));
         } catch (uploadErr) {
-          showToast('שגיאה בהעלאת תמונה — ודא שהגדרת את מדיניות האחסון ב-Supabase', 'error');
+          showToast('שגיאה בהעלאה: ' + (uploadErr.message || uploadErr), 'error');
           setSaving(false);
           return;
         }
@@ -398,7 +401,7 @@ function showToast(msg, type = '') {
   toast.textContent = msg;
   toast.className = `toast show${type ? ' ' + type : ''}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), type === 'error' ? 6000 : 3000);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

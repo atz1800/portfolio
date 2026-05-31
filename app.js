@@ -144,6 +144,10 @@ function buildCard(p) {
   const linkBtn = card.querySelector('.card-link-btn');
   if (p.link) {
     linkBtn.href = p.link;
+    linkBtn.addEventListener('click', e => e.stopPropagation());
+    // Make whole card clickable
+    card.classList.add('card-clickable');
+    card.addEventListener('click', () => window.open(p.link, '_blank', 'noopener,noreferrer'));
   } else {
     linkBtn.textContent = 'בקרוב';
     linkBtn.style.pointerEvents = 'none';

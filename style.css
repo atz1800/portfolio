@@ -247,6 +247,7 @@ body {
   border-color: rgba(108, 99, 255, 0.4);
   box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(108,99,255,0.2);
 }
+.card-clickable { cursor: pointer; }
 
 .card-image {
   position: relative;
