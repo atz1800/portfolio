@@ -378,9 +378,10 @@ async function uploadImage(file, docId) {
   const ext = file.name.split('.').pop();
   const path = `${docId}/${Date.now()}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { upsert: true });
+  const { error } = await Promise.race([
+    supabase.storage.from(BUCKET).upload(path, file, { upsert: true }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('העלאת התמונה לקחה יותר מדי זמן')), 30000))
+  ]);
 
   mEditProgress.classList.add('hidden');
 
@@ -391,7 +392,7 @@ async function uploadImage(file, docId) {
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────────
-editForm.addEventListener('submit', async e => {
+editForm?.addEventListener('submit', async e => {
   e.preventDefault();
   if (!supabase) { showToast('Supabase לא נטען', 'error'); return; }
   if (!mEditTitle.value.trim()) {
@@ -428,7 +429,10 @@ editForm.addEventListener('submit', async e => {
       image_url:   finalImageUrl
     };
 
-    const { error } = await supabase.from(TABLE).upsert(data);
+    const { error } = await Promise.race([
+      supabase.from(TABLE).upsert(data),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('השמירה לקחה יותר מדי זמן — בדוק חיבור לאינטרנט')), 10000))
+    ]);
     if (error) throw error;
 
     // Update local state (preserve images array — managed only in admin.html)
