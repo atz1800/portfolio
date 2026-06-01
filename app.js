@@ -75,7 +75,7 @@ function handleAdminLinkClick(e) {
 adminGearBtn.addEventListener('click', handleAdminLinkClick);
 if (adminNavBtn) adminNavBtn.addEventListener('click', handleAdminLinkClick);
 
-adminLogoutBtn.addEventListener('click', () => supabase?.auth.signOut());
+adminLogoutBtn?.addEventListener('click', () => supabase?.auth.signOut());
 
 // Set up auth listener once Supabase is ready
 supabaseReady.then(ok => {
@@ -95,7 +95,7 @@ supabaseReady.then(ok => {
 });
 
 // ── Add Project button ────────────────────────────────────────────────────────
-addProjectBtn.addEventListener('click', () => openNewModal());
+addProjectBtn?.addEventListener('click', () => openNewModal());
 
 // ── Card builder ──────────────────────────────────────────────────────────────
 function buildCard(p) {
@@ -305,8 +305,8 @@ function hideModal() {
   pendingImageFile = null;
 }
 
-closeModalBtn.addEventListener('click', hideModal);
-editModal.addEventListener('click', (e) => {
+closeModalBtn?.addEventListener('click', hideModal);
+editModal?.addEventListener('click', (e) => {
   if (e.target === editModal) hideModal();
 });
 document.addEventListener('keydown', (e) => {
@@ -314,7 +314,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── Image preview in modal ────────────────────────────────────────────────────
-mEditImageFile.addEventListener('change', () => {
+mEditImageFile?.addEventListener('change', () => {
   const file = mEditImageFile.files[0];
   if (!file) return;
   pendingImageFile = file;
@@ -324,7 +324,7 @@ mEditImageFile.addEventListener('change', () => {
   reader.readAsDataURL(file);
 });
 
-mEditImageUrl.addEventListener('input', () => {
+mEditImageUrl?.addEventListener('input', () => {
   const url = mEditImageUrl.value.trim();
   if (url) {
     pendingImageFile = null;
@@ -461,16 +461,16 @@ function setSaving(on) {
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
-deleteModalBtn.addEventListener('click', () => {
+deleteModalBtn?.addEventListener('click', () => {
   const p = allProjects.find(x => x.docId === editingDocId);
   if (!p) return;
   confirmDeleteName.textContent = p.title;
   confirmDeleteOverlay.classList.remove('hidden');
 });
 
-confirmDeleteNoBtn.addEventListener('click', () => confirmDeleteOverlay.classList.add('hidden'));
+confirmDeleteNoBtn?.addEventListener('click', () => confirmDeleteOverlay.classList.add('hidden'));
 
-confirmDeleteYesBtn.addEventListener('click', async () => {
+confirmDeleteYesBtn?.addEventListener('click', async () => {
   confirmDeleteOverlay.classList.add('hidden');
   if (!editingDocId || !supabase) return;
   try {
