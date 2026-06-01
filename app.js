@@ -219,10 +219,15 @@ filterBtns.forEach(btn => {
 // ── Initial load (Supabase or static) ────────────────────────────────────────
 async function loadProjects() {
   try {
-    const { data, error } = await supabase
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 5000)
+    );
+    const query = supabase
       .from(TABLE)
       .select('*')
       .order('order', { ascending: true });
+
+    const { data, error } = await Promise.race([query, timeout]);
 
     if (!error && data && data.length > 0) {
       // Map `description` column → `desc` for UI compatibility
@@ -235,7 +240,7 @@ async function loadProjects() {
       }));
     }
   } catch (_) {
-    // Network error or table not set up yet
+    // Network error, timeout, or table not set up yet
   }
   return STATIC_PROJECTS;
 }
