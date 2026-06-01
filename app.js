@@ -1,9 +1,15 @@
 import { PROJECTS as STATIC_PROJECTS } from './projects.js';
 import { SUPABASE_URL, SUPABASE_KEY, ADMIN_EMAIL, TABLE, BUCKET } from './supabase-config.js';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-// ── Supabase init ─────────────────────────────────────────────────────────────
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// ── Supabase init (dynamic — so a CDN failure doesn't break the whole page) ───
+let supabase = null;
+const supabaseReady = Promise.race([
+  import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(({ createClient }) => {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    return true;
+  }),
+  new Promise(resolve => setTimeout(() => resolve(false), 6000))
+]).catch(() => false);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let isAdmin = false;
@@ -69,19 +75,23 @@ function handleAdminLinkClick(e) {
 adminGearBtn.addEventListener('click', handleAdminLinkClick);
 if (adminNavBtn) adminNavBtn.addEventListener('click', handleAdminLinkClick);
 
-adminLogoutBtn.addEventListener('click', () => supabase.auth.signOut());
+adminLogoutBtn.addEventListener('click', () => supabase?.auth.signOut());
 
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session && session.user && session.user.email === ADMIN_EMAIL) {
-    isAdmin = true;
-    adminEmail.textContent = session.user.email;
-    adminBar.classList.remove('hidden');
-    renderProjects(allProjects); // re-render with edit buttons
-  } else {
-    isAdmin = false;
-    adminBar.classList.add('hidden');
-    renderProjects(allProjects); // re-render without edit buttons
-  }
+// Set up auth listener once Supabase is ready
+supabaseReady.then(ok => {
+  if (!ok || !supabase) return;
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session && session.user && session.user.email === ADMIN_EMAIL) {
+      isAdmin = true;
+      adminEmail.textContent = session.user.email;
+      adminBar.classList.remove('hidden');
+      renderProjects(allProjects);
+    } else {
+      isAdmin = false;
+      adminBar.classList.add('hidden');
+      renderProjects(allProjects);
+    }
+  });
 });
 
 // ── Add Project button ────────────────────────────────────────────────────────
@@ -216,39 +226,31 @@ filterBtns.forEach(btn => {
   });
 });
 
-// ── Initial load (Supabase or static) ────────────────────────────────────────
-async function loadProjects() {
+// ── Initial load ──────────────────────────────────────────────────────────────
+// Show static projects immediately — never leave the page blank
+if (loadingEl) loadingEl.classList.add('hidden');
+allProjects = STATIC_PROJECTS;
+renderProjects(allProjects);
+
+// Upgrade to Supabase data in the background if available
+supabaseReady.then(async ok => {
+  if (!ok || !supabase) return;
   try {
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 5000)
-    );
-    const query = supabase
-      .from(TABLE)
-      .select('*')
-      .order('order', { ascending: true });
-
-    const { data, error } = await Promise.race([query, timeout]);
-
+    const { data, error } = await Promise.race([
+      supabase.from(TABLE).select('*').order('order', { ascending: true }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+    ]);
     if (!error && data && data.length > 0) {
-      // Map `description` column → `desc` for UI compatibility
-      return data.map(row => ({
+      allProjects = data.map(row => ({
         docId: row.id,
         ...row,
         desc:     row.description || row.desc || '',
         imageUrl: row.image_url   || row.imageUrl || null,
         images:   row.images      || []
       }));
+      renderProjects(allProjects);
     }
-  } catch (_) {
-    // Network error, timeout, or table not set up yet
-  }
-  return STATIC_PROJECTS;
-}
-
-loadProjects().then(projects => {
-  if (loadingEl) loadingEl.classList.add('hidden');
-  allProjects = projects;
-  renderProjects(allProjects);
+  } catch (_) {}
 });
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
@@ -391,6 +393,7 @@ async function uploadImage(file, docId) {
 // ── Save ──────────────────────────────────────────────────────────────────────
 editForm.addEventListener('submit', async e => {
   e.preventDefault();
+  if (!supabase) { showToast('Supabase לא נטען', 'error'); return; }
   if (!mEditTitle.value.trim()) {
     showToast('יש למלא שם פרויקט', 'error');
     mEditTitle.focus();
@@ -469,7 +472,7 @@ confirmDeleteNoBtn.addEventListener('click', () => confirmDeleteOverlay.classLis
 
 confirmDeleteYesBtn.addEventListener('click', async () => {
   confirmDeleteOverlay.classList.add('hidden');
-  if (!editingDocId) return;
+  if (!editingDocId || !supabase) return;
   try {
     const { error } = await supabase.from(TABLE).delete().eq('id', editingDocId);
     if (error) throw error;
