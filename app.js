@@ -66,11 +66,11 @@ const adminToast     = document.getElementById('adminToast');
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function handleAdminLinkClick(e) {
-  if (isAdmin) {
+  if (isAdmin && adminBar) {
     e.preventDefault();
     adminBar.scrollIntoView({ behavior: 'smooth' });
   }
-  // else: let the <a href="admin.html"> navigate naturally (reliable on mobile)
+  // else: let the <a href="admin.html"> navigate naturally
 }
 adminGearBtn.addEventListener('click', handleAdminLinkClick);
 if (adminNavBtn) adminNavBtn.addEventListener('click', handleAdminLinkClick);
