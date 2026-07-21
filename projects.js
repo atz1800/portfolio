@@ -136,5 +136,27 @@ export const PROJECTS = [
     tags: ["HTML", "CSS", "JavaScript"],
     category: "app",
     year: "2025"
+  },
+  {
+    id: "gitara-app",
+    title: "לומדים גיטרה",
+    desc: "אפליקציה ללימוד גיטרה בעברית. לומדים אקורדים, קצב וטכניקת נגינה בצורה מודרכת ומהנה — מהצליל הראשון ועד לנגן שירים שלמים.",
+    emoji: "🎸",
+    image: null,
+    link: null,
+    tags: ["JavaScript", "HTML", "CSS"],
+    category: "app",
+    year: "2026"
+  },
+  {
+    id: "torat-nachman",
+    title: "תורת רבי נחמן",
+    desc: "אפליקציה ללימוד תורת רבי נחמן מברסלב. מרכזת תורות וליקוטים ומגישה אותם ללימוד יומי בצורה נגישה, נקייה ומסודרת.",
+    emoji: "🔥",
+    image: null,
+    link: null,
+    tags: ["JavaScript", "HTML", "CSS"],
+    category: "app",
+    year: "2026"
   }
 ];
