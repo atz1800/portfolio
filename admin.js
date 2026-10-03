@@ -180,6 +180,31 @@ async function loadProjects() {
   }
   renderSidebar();
   if (seedBtn) seedBtn.classList.toggle('hidden', projects.length > 0);
+  openFromHash();
+}
+
+// ── Deep link from the public site: admin.html#edit=<id> ──────────────────────
+// פרויקט שקיים רק ב-projects.js נפתח כ"חדש" עם אותו מזהה, כך שהשמירה דורסת אותו באתר
+function openFromHash() {
+  const m = location.hash.match(/^#edit=(.+)$/);
+  if (!m) return;
+  const id = decodeURIComponent(m[1]);
+  history.replaceState(null, '', location.pathname + location.search);
+  if (projects.some(p => p.docId === id)) { openEditPanel(id); return; }
+  const sp = STATIC_PROJECTS.find(p => p.id === id);
+  if (!sp) return;
+  openNewPanel();
+  fieldDocId.value    = sp.id;
+  fieldTitle.value    = sp.title || '';
+  fieldEmoji.value    = sp.emoji || '';
+  fieldDesc.value     = sp.desc || '';
+  fieldLink.value     = sp.link || '';
+  fieldYear.value     = sp.year || '';
+  fieldCategory.value = sp.category || 'app';
+  fieldOrder.value    = sp.order ?? '';
+  fieldTags.value     = (sp.tags || []).join(', ');
+  if (sp.image) { galleryImages = [{ src: sp.image, file: null }]; renderGallery(); }
+  panelTitle.textContent = 'עריכת פרויקט';
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -194,16 +219,16 @@ function renderSidebar() {
     item.dataset.id = p.docId;
 
     const thumb = p.imageUrl
-      ? `<img class="list-item-img" src="${p.imageUrl}" alt="" />`
-      : `<span class="list-item-emoji">${p.emoji || '📱'}</span>`;
+      ? `<img class="list-item-img" src="${escHtml(p.imageUrl)}" alt="" />`
+      : `<span class="list-item-emoji">${escHtml(p.emoji || '📱')}</span>`;
 
     item.innerHTML = `
       ${thumb}
       <div class="list-item-info">
         <div class="list-item-title">${escHtml(p.title)}</div>
-        <div class="list-item-meta">${catLabel(p.category)} · ${p.year || ''}</div>
+        <div class="list-item-meta">${catLabel(p.category)} · ${escHtml(String(p.year || ''))}</div>
       </div>
-      <span class="list-item-order">${p.order ?? '-'}</span>
+      <span class="list-item-order">${escHtml(String(p.order ?? '-'))}</span>
     `;
     item.addEventListener('click', () => openEditPanel(p.docId));
     projectsList.appendChild(item);
