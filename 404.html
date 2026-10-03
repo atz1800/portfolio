@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#0d0f14" />
+  <title>העמוד לא נמצא — עמיחי צדוק</title>
+  <!-- עצמאי לגמרי: GitHub Pages מגיש את הקובץ הזה בכל נתיב, אז אין קישורים יחסיים לקבצים -->
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      background: #0d0f14;
+      color: #e8eaf0;
+      font-family: 'Heebo', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    }
+    .code {
+      font-size: clamp(5rem, 20vw, 9rem);
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #6c63ff, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    h1 { font-size: 1.6rem; margin: 16px 0 8px; }
+    p { color: #8b90a0; margin-bottom: 32px; }
+    a {
+      display: inline-block;
+      background: #6c63ff;
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    a:hover { background: #7c75ff; }
+    a:focus-visible { outline: 2px solid #a855f7; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="code" aria-hidden="true">404</div>
+    <h1>העמוד לא נמצא</h1>
+    <p>ייתכן שהקישור שגוי או שהעמוד הועבר.</p>
+    <a id="home" href="/portfolio/">חזרה לתיק העבודות</a>
+  </main>
+  <script>
+    // ב-GitHub Pages האתר יושב תחת /portfolio/, בכל אירוח אחר — בשורש
+    if (!location.hostname.endsWith('github.io')) document.getElementById('home').href = '/';
+  </script>
+</body>
+</html>

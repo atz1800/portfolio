@@ -9,32 +9,78 @@
   <meta property="og:title" content="עמיחי צדוק — תיק עבודות" />
   <meta property="og:description" content="אפליקציות ואתרים בעברית — מהרעיון ועד המוצר המוגמר." />
   <meta property="og:locale" content="he_IL" />
+  <meta property="og:url" content="https://atz1800.github.io/portfolio/" />
+  <meta property="og:site_name" content="עמיחי צדוק — תיק עבודות" />
+  <meta property="og:image" content="https://atz1800.github.io/portfolio/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="עמיחי צדוק — בונה דברים שעובדים" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="עמיחי צדוק — תיק עבודות" />
+  <meta name="twitter:description" content="אפליקציות ואתרים בעברית — מהרעיון ועד המוצר המוגמר." />
+  <meta name="twitter:image" content="https://atz1800.github.io/portfolio/og-image.png" />
+  <meta name="author" content="עמיחי צדוק" />
+  <meta name="theme-color" content="#0d0f14" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="canonical" href="https://atz1800.github.io/portfolio/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "https://atz1800.github.io/portfolio/#person",
+        "name": "עמיחי צדוק",
+        "jobTitle": "מפתח אפליקציות ואתרים",
+        "url": "https://atz1800.github.io/portfolio/",
+        "email": "mailto:amichai85@gmail.com",
+        "sameAs": ["https://github.com/atz1800"],
+        "knowsAbout": ["React", "Next.js", "JavaScript", "Firebase", "Supabase", "PWA", "Node.js"]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://atz1800.github.io/portfolio/#website",
+        "url": "https://atz1800.github.io/portfolio/",
+        "name": "עמיחי צדוק — תיק עבודות",
+        "inLanguage": "he",
+        "publisher": { "@id": "https://atz1800.github.io/portfolio/#person" }
+      }
+    ]
+  }
+  </script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
+  <a href="#main" class="skip-link">דלג לתוכן</a>
+
   <!-- HEADER -->
   <header class="site-header">
     <div class="container header-inner">
-      <div class="logo">
+      <a href="#top" class="logo" aria-label="עמיחי — לראש העמוד">
         <span class="logo-bracket">{</span>
         <span class="logo-name">עמיחי</span>
         <span class="logo-bracket">}</span>
-      </div>
-      <nav class="nav-links">
+      </a>
+      <nav class="nav-links" aria-label="ניווט ראשי">
         <a href="#projects">פרויקטים</a>
         <a href="#about">אודות</a>
         <a href="#contact">צור קשר</a>
-        <a href="admin.html" id="adminNavBtn" class="nav-admin-icon" title="ניהול">⚙</a>
+        <a href="admin.html" id="adminNavBtn" class="nav-admin-icon" title="ניהול" aria-label="ניהול האתר" rel="nofollow">⚙</a>
       </nav>
     </div>
   </header>
 
+  <main id="main">
+
   <!-- HERO -->
-  <section class="hero">
+  <section class="hero" id="top">
     <div class="container hero-inner">
       <div class="hero-badge">מפתח אפליקציות ואתרים</div>
       <h1 class="hero-title">
@@ -49,7 +95,7 @@
         <a href="#contact" class="btn btn-ghost">צור קשר</a>
       </div>
     </div>
-    <div class="hero-bg-shapes">
+    <div class="hero-bg-shapes" aria-hidden="true">
       <div class="shape shape-1"></div>
       <div class="shape shape-2"></div>
       <div class="shape shape-3"></div>
@@ -64,12 +110,14 @@
         <p class="section-sub">אפליקציות ואתרים שבניתי</p>
       </div>
 
-      <div class="filter-bar">
+      <div class="filter-bar" role="group" aria-label="סינון פרויקטים לפי סוג">
         <button class="filter-btn active" data-filter="all">הכל</button>
         <button class="filter-btn" data-filter="app">אפליקציות</button>
         <button class="filter-btn" data-filter="web">אתרים</button>
         <button class="filter-btn" data-filter="tool">כלים</button>
       </div>
+
+      <p id="filterStatus" class="visually-hidden" aria-live="polite"></p>
 
       <div id="projectsLoading" class="projects-loading">
         <div class="loading-spinner"></div>
@@ -77,6 +125,12 @@
       <div class="projects-grid" id="projectsGrid">
         <!-- Cards injected by JS -->
       </div>
+      <noscript>
+        <p class="noscript-msg">
+          כדי לראות את הפרויקטים יש להפעיל JavaScript.
+          אפשר גם לעיין בקוד ב-<a href="https://github.com/atz1800">GitHub</a>.
+        </p>
+      </noscript>
     </div>
   </section>
 
@@ -107,7 +161,7 @@
       </div>
       <div class="about-stats">
         <div class="stat-card">
-          <span class="stat-number" id="projectCount">10+</span>
+          <span class="stat-number" id="projectCount">20+</span>
           <span class="stat-label">פרויקטים</span>
         </div>
         <div class="stat-card">
@@ -126,21 +180,28 @@
   <section class="contact-section" id="contact">
     <div class="container contact-inner">
       <h2 class="section-title">צור קשר</h2>
-      <p class="contact-sub">מעוניין בפרויקט? דברו איתי.</p>
+      <p class="contact-sub">יש לכם רעיון לאפליקציה או לאתר? אשמח לשמוע.</p>
       <div class="contact-links">
-        <a href="mailto:amichai85@gmail.com" class="contact-link">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
-          amichai85@gmail.com
+        <a href="mailto:amichai85@gmail.com?subject=%D7%A4%D7%A0%D7%99%D7%99%D7%94%20%D7%9E%D7%AA%D7%99%D7%A7%20%D7%94%D7%A2%D7%91%D7%95%D7%93%D7%95%D7%AA" class="contact-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+          <span dir="ltr">amichai85@gmail.com</span>
+        </a>
+        <a href="https://github.com/atz1800" class="contact-link" target="_blank" rel="noopener me">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.76 0c2.19-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>
+          <span dir="ltr">github.com/atz1800</span>
         </a>
       </div>
     </div>
   </section>
 
+  </main>
+
   <!-- FOOTER -->
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span>© 2026 עמיחי</span>
-      <a href="admin.html" id="adminGearBtn" class="admin-footer-link" title="ניהול">⚙</a>
+      <span>© <span id="footerYear">2026</span> עמיחי צדוק</span>
+      <a href="#top" class="back-to-top">חזרה למעלה ↑</a>
+      <a href="admin.html" id="adminGearBtn" class="admin-footer-link" title="ניהול" aria-label="ניהול האתר" rel="nofollow">⚙</a>
     </div>
   </footer>
 
