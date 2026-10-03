@@ -24,6 +24,8 @@ const loadingEl      = document.getElementById('projectsLoading');
 const template       = document.getElementById('cardTemplate');
 const filterBtns     = document.querySelectorAll('.filter-btn');
 const projectCountEl = document.getElementById('projectCount');
+const filterStatus   = document.getElementById('filterStatus');
+const reducedMotion  = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const adminBar       = document.getElementById('adminBar');
 const adminEmail     = document.getElementById('adminEmail');
@@ -121,7 +123,7 @@ function buildCard(p, index = 99) {
       const img = document.createElement('img');
       img.className = 'carousel-slide' + (i === 0 ? ' active' : '');
       img.src = src;
-      img.alt = p.title;
+      img.alt = i === 0 ? `צילום מסך — ${p.title}` : '';
       img.loading = 'lazy';
       carousel.appendChild(img);
     });
@@ -137,7 +139,10 @@ function buildCard(p, index = 99) {
     let cur = 0;
     const slides = carousel.querySelectorAll('.carousel-slide');
     const dotEls  = carousel.querySelectorAll('.carousel-dot');
+    // לא מסובבים תמונות למי שביקש פחות תנועה, ולא כשהלשונית מוסתרת
+    if (reducedMotion.matches) return finishCard(card, p);
     const iid = setInterval(() => {
+      if (document.hidden) return;
       slides[cur].classList.remove('active');
       dotEls[cur].classList.remove('active');
       cur = (cur + 1) % galleryImgs.length;
@@ -150,12 +155,17 @@ function buildCard(p, index = 99) {
     // הכרטיסים הראשונים נטענים מיד — שלא ייראה אמוג'י מציץ במקום צילום המסך
     if (index < 9) existingImg.loading = 'eager';
     existingImg.src = src;
-    existingImg.alt = p.title;
+    existingImg.alt = `צילום מסך — ${p.title}`;
     if (existingImg.complete && existingImg.naturalWidth) existingImg.classList.add('loaded');
     existingImg.addEventListener('load', () => existingImg.classList.add('loaded'));
   }
 
+  return finishCard(card, p);
+}
+
+function finishCard(card, p) {
   const linkBtn = card.querySelector('.card-link-btn');
+  linkBtn.setAttribute('aria-label', `פתח את ${p.title} (נפתח בלשונית חדשה)`);
   if (p.link) {
     linkBtn.href = p.link;
     linkBtn.addEventListener('click', e => e.stopPropagation());
@@ -164,6 +174,8 @@ function buildCard(p, index = 99) {
     card.addEventListener('click', () => window.open(p.link, '_blank', 'noopener,noreferrer'));
   } else {
     linkBtn.textContent = 'בקרוב';
+    linkBtn.removeAttribute('href');
+    linkBtn.removeAttribute('aria-label');
     linkBtn.style.pointerEvents = 'none';
     linkBtn.style.opacity = '0.5';
   }
@@ -183,16 +195,15 @@ function buildCard(p, index = 99) {
     tagsEl.appendChild(span);
   });
 
-  // Admin edit button
+  // Admin edit button — index.html has no edit modal, so open the project in admin.html
   if (isAdmin && p.docId) {
-    const editBtn = document.createElement('button');
+    const editBtn = document.createElement('a');
     editBtn.className = 'card-edit-btn';
+    editBtn.href = `admin.html#edit=${encodeURIComponent(p.docId)}`;
     editBtn.title = 'ערוך פרויקט';
-    editBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openEditModal(p.docId);
-    });
+    editBtn.setAttribute('aria-label', `ערוך את ${p.title}`);
+    editBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    editBtn.addEventListener('click', e => e.stopPropagation());
     card.querySelector('.card-image').appendChild(editBtn);
   }
 
@@ -207,27 +218,55 @@ function renderProjects(projects) {
   if (projectCountEl) {
     projectCountEl.textContent = projects.length > 9 ? `${projects.length}+` : projects.length;
   }
+  updateFilterCounts(projects);
   // Re-apply active filter
   const activeFilter = document.querySelector('.filter-btn.active');
-  if (activeFilter && activeFilter.dataset.filter !== 'all') {
-    const cat = activeFilter.dataset.filter;
-    document.querySelectorAll('.project-card').forEach(card => {
-      card.classList.toggle('hidden', card.dataset.category !== cat);
-    });
-  }
+  applyFilter(activeFilter ? activeFilter.dataset.filter : 'all');
 }
 
 // ── Filter ────────────────────────────────────────────────────────────────────
-filterBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    filterBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+// מספר פרויקטים ליד כל כפתור, וקטגוריה ריקה לא מוצגת בכלל
+function updateFilterCounts(projects) {
+  filterBtns.forEach(btn => {
     const cat = btn.dataset.filter;
-    document.querySelectorAll('.project-card').forEach(card => {
-      card.classList.toggle('hidden', cat !== 'all' && card.dataset.category !== cat);
+    const n = cat === 'all' ? projects.length : projects.filter(p => (p.category || 'app') === cat).length;
+    let countEl = btn.querySelector('.filter-count');
+    if (!countEl) {
+      countEl = document.createElement('span');
+      countEl.className = 'filter-count';
+      btn.appendChild(countEl);
+    }
+    countEl.textContent = n;
+    btn.hidden = n === 0 && cat !== 'all';
+  });
+}
+
+function applyFilter(cat) {
+  let visible = 0;
+  document.querySelectorAll('.project-card').forEach(card => {
+    const hide = cat !== 'all' && card.dataset.category !== cat;
+    card.classList.toggle('hidden', hide);
+    if (!hide) visible++;
+  });
+  if (filterStatus) filterStatus.textContent = `מוצגים ${visible} פרויקטים`;
+}
+
+filterBtns.forEach(btn => {
+  btn.setAttribute('aria-pressed', btn.classList.contains('active'));
+  btn.addEventListener('click', () => {
+    filterBtns.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
     });
+    btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
+    applyFilter(btn.dataset.filter);
   });
 });
+
+// ── Footer year ───────────────────────────────────────────────────────────────
+const yearEl = document.getElementById('footerYear');
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 // ── Merge static + Supabase ───────────────────────────────────────────────────
 // projects.js is the baseline (always shown). שורות מ-Supabase דורסות שדה-שדה,
@@ -352,7 +391,7 @@ editModal?.addEventListener('click', (e) => {
   if (e.target === editModal) hideModal();
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !editModal.classList.contains('hidden')) hideModal();
+  if (e.key === 'Escape' && editModal && !editModal.classList.contains('hidden')) hideModal();
 });
 
 // ── Image preview in modal ────────────────────────────────────────────────────
